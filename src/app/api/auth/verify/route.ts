@@ -67,7 +67,8 @@ export async function POST(request: NextRequest) {
       email: updatedUser.email,
       level: updatedUser.level,
       points: updatedUser.points,
-      isVerified: updatedUser.isVerified
+      isVerified: updatedUser.isVerified,
+      role: (updatedUser.role || 'user') as 'admin' | 'user' | 'helper' | 'moderator'
     });
 
     // Define o cookie de autenticação
