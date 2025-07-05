@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import jwt from "jsonwebtoken";
 
-export async function DELETE(request: NextRequest, { params }: { params: { id: string } }) {
+export async function DELETE(request: NextRequest) {
   try {
     const token = request.cookies.get("auth_token")?.value;
     if (!token) {
@@ -14,7 +14,12 @@ export async function DELETE(request: NextRequest, { params }: { params: { id: s
     if (!user || (user.role !== 'admin' && user.role !== 'moderator')) {
       return NextResponse.json({ error: "Acesso negado" }, { status: 403 });
     }
-    const targetId = params.id;
+    
+    // Extrair o ID da URL
+    const url = new URL(request.url);
+    const pathParts = url.pathname.split('/');
+    const targetId = pathParts[pathParts.length - 1];
+    
     await prisma.user.delete({ where: { id: targetId } });
     return NextResponse.json({ message: "Usuário eliminado com sucesso" });
   } catch (error) {
