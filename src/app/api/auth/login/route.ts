@@ -63,7 +63,7 @@ export async function POST(request: NextRequest) {
       level: user.level,
       points: user.points,
       isVerified: user.isVerified,
-      role: user.role || 'user'
+      role: (user.role || 'user') as 'admin' | 'user' | 'helper' | 'moderator'
     });
 
     // Cria a resposta
@@ -76,7 +76,7 @@ export async function POST(request: NextRequest) {
         email: user.email,
         level: user.level,
         points: user.points,
-        role: user.role || 'user'
+        role: (user.role || 'user') as 'admin' | 'user' | 'helper' | 'moderator'
       }
     });
 
