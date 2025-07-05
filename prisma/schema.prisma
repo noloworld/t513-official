@@ -1,0 +1,191 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+model User {
+  id                     String        @id @default(cuid())
+  nickname               String        @unique
+  email                  String        @unique
+  password               String
+  level                  Int           @default(1)
+  points                 Int           @default(0)
+  verificationCode       String?
+  isVerified             Boolean       @default(false)
+  role                   String        @default("user")
+  donationParticipations Int           @default(0)
+  createdAt              DateTime      @default(now())
+  updatedAt              DateTime      @updatedAt
+  queueEntries           QueueEntry[]
+  taskAttempts           TaskAttempt[]
+  userBadges             UserBadge[]
+  events                 Event[]
+  news                   News[]
+  redemptionRequests     RedemptionRequest[]
+  helpRequests           HelpRequest[]
+  suggestions            Suggestion[]
+}
+
+model Task {
+  id          String        @id @default(cuid())
+  title       String
+  description String?
+  isActive    Boolean       @default(true)
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+  questions   Question[]
+  attempts    TaskAttempt[]
+}
+
+model Question {
+  id            String   @id @default(cuid())
+  taskId        String?
+  questionText  String
+  optionA       String
+  optionB       String
+  optionC       String
+  optionD       String
+  correctAnswer String
+  explanation   String
+  order         Int
+  difficulty    String
+  createdAt     DateTime @default(now())
+  answers       Answer[]
+  task          Task?    @relation(fields: [taskId], references: [id], onDelete: Cascade)
+}
+
+model TaskAttempt {
+  id          String   @id @default(cuid())
+  userId      String
+  taskId      String
+  score       Int
+  totalPoints Int
+  completedAt DateTime @default(now())
+  answers     Answer[]
+  task        Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, taskId, completedAt])
+}
+
+model Answer {
+  id           String      @id @default(cuid())
+  attemptId    String
+  questionId   String
+  userAnswer   String
+  isCorrect    Boolean
+  pointsEarned Int
+  answeredAt   DateTime    @default(now())
+  question     Question    @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  attempt      TaskAttempt @relation(fields: [attemptId], references: [id], onDelete: Cascade)
+}
+
+model Badge {
+  id          String      @id @default(cuid())
+  name        String      @unique
+  description String
+  icon        String
+  condition   String
+  category    String
+  isActive    Boolean     @default(true)
+  createdAt   DateTime    @default(now())
+  userBadges  UserBadge[]
+}
+
+model UserBadge {
+  id       String   @id @default(cuid())
+  userId   String
+  badgeId  String
+  earnedAt DateTime @default(now())
+  badge    Badge    @relation(fields: [badgeId], references: [id], onDelete: Cascade)
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, badgeId])
+}
+
+model Donation {
+  id          String       @id @default(cuid())
+  startTime   DateTime     @default(now())
+  endTime     DateTime?
+  isActive    Boolean      @default(true)
+  currentCode String?
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  queue       QueueEntry[]
+  queueStopped Boolean     @default(false)
+}
+
+model QueueEntry {
+  id            String   @id @default(cuid())
+  donationId    String
+  userId        String
+  joinedAt      DateTime @default(now())
+  cambiosEarned Int      @default(0)
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  donation      Donation @relation(fields: [donationId], references: [id], onDelete: Cascade)
+
+  @@unique([donationId, userId])
+}
+
+model Event {
+  id          String   @id @default(cuid())
+  title       String
+  description String?
+  date        String
+  emoji       String
+  type        String
+  status      String   @default("Em Breve")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  createdBy   String
+  user        User     @relation(fields: [createdBy], references: [id], onDelete: Cascade)
+}
+
+model News {
+  id          String   @id @default(cuid())
+  title       String
+  description String
+  date        String
+  type        String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  createdBy   String
+  user        User     @relation(fields: [createdBy], references: [id], onDelete: Cascade)
+}
+
+model RedemptionRequest {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  points    Int
+  amountC   Int
+  status    String   @default("pendente") // pendente, aprovado, rejeitado
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model HelpRequest {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  subject     String
+  description String
+  status      String   @default("pendente") // pendente, concluido
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Suggestion {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  subject     String
+  description String
+  status      String   @default("pendente") // pendente, concluido
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
