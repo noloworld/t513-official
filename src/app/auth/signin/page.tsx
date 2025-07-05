@@ -1,11 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useState, Suspense } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useAuth } from "@/hooks/useAuth";
 
-export default function SignIn() {
+function SignInContent() {
   const searchParams = useSearchParams();
   const message = searchParams.get("message");
   const { login, error } = useAuth();
@@ -167,5 +167,13 @@ export default function SignIn() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function SignIn() {
+  return (
+    <Suspense fallback={<div>Carregando...</div>}>
+      <SignInContent />
+    </Suspense>
   );
 } 
