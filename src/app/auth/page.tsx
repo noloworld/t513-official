@@ -1,9 +1,9 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 
-export default function Auth() {
+function AuthContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const register = searchParams.get("register");
@@ -17,4 +17,12 @@ export default function Auth() {
   }, [register, router]);
 
   return null;
+}
+
+export default function Auth() {
+  return (
+    <Suspense fallback={<div>Carregando...</div>}>
+      <AuthContent />
+    </Suspense>
+  );
 } 
