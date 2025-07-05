@@ -34,15 +34,16 @@ export async function createToken(user: UserData): Promise<string> {
 export async function verifyToken(token: string): Promise<UserData | null> {
   try {
     const verified = await jwtVerify(token, new TextEncoder().encode(JWT_SECRET));
-    return verified.payload as UserData;
+    return verified.payload as unknown as UserData;
   } catch (error) {
     return null;
   }
 }
 
 // Função para definir cookie de autenticação
-export function setAuthCookie(token: string): void {
-  cookies().set('auth_token', token, {
+export async function setAuthCookie(token: string): Promise<void> {
+  const cookieStore = await cookies();
+  cookieStore.set('auth_token', token, {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
     sameSite: 'strict',
@@ -51,15 +52,16 @@ export function setAuthCookie(token: string): void {
 }
 
 // Função para remover cookie de autenticação
-export function removeAuthCookie(): void {
-  cookies().delete('auth_token');
+export async function removeAuthCookie(): Promise<void> {
+  const cookieStore = await cookies();
+  cookieStore.delete('auth_token');
 }
 
 // Função para obter usuário atual
 export async function getCurrentUser(request?: NextRequest): Promise<UserData | null> {
   const token = request 
     ? request.cookies.get('auth_token')?.value
-    : cookies().get('auth_token')?.value;
+    : (await cookies()).get('auth_token')?.value;
 
   if (!token) return null;
 

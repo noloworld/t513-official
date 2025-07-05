@@ -72,7 +72,7 @@ export async function POST(request: NextRequest) {
     });
 
     // Define o cookie de autenticação
-    setAuthCookie(token);
+    await setAuthCookie(token);
 
     return NextResponse.json({
       message: 'Conta verificada com sucesso'
