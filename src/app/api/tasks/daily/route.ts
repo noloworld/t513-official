@@ -59,8 +59,16 @@ export async function GET(request: NextRequest) {
       });
     }
 
-    // Buscar perguntas aleatórias
-    const allQuestions = await prisma.question.findMany({
+    // Buscar perguntas já respondidas pelo usuário
+    const answered = await prisma.answer.findMany({
+      where: { attempt: { userId } },
+      select: { questionId: true }
+    });
+    const answeredIds = answered.map(a => a.questionId);
+
+    // Buscar perguntas não respondidas
+    const unansweredQuestions = await prisma.question.findMany({
+      where: { id: { notIn: answeredIds } },
       select: {
         id: true,
         questionText: true,
@@ -73,13 +81,38 @@ export async function GET(request: NextRequest) {
       }
     });
 
-    if (!allQuestions || allQuestions.length < 5) {
-      return NextResponse.json({ error: "Perguntas insuficientes para tarefa diária" }, { status: 404 });
+    // Buscar todas as perguntas (para completar caso precise)
+    const allQuestions = unansweredQuestions.length < 5
+      ? await prisma.question.findMany({
+          select: {
+            id: true,
+            questionText: true,
+            optionA: true,
+            optionB: true,
+            optionC: true,
+            optionD: true,
+            order: true,
+            difficulty: true
+          }
+        })
+      : [];
+
+    // Função para embaralhar
+    function shuffle(array: any[]) {
+      return array.sort(() => 0.5 - Math.random());
     }
 
-    // Embaralhar e pegar 5 perguntas aleatórias
-    const shuffled = allQuestions.sort(() => 0.5 - Math.random());
-    const selectedQuestions = shuffled.slice(0, 5);
+    let selectedQuestions = [];
+    if (unansweredQuestions.length >= 5) {
+      selectedQuestions = shuffle(unansweredQuestions).slice(0, 5);
+    } else {
+      // Pega todas as não respondidas e completa com respondidas (sem repetir na mesma tarefa)
+      const alreadyAnswered = allQuestions.filter(q => !unansweredQuestions.find(uq => uq.id === q.id));
+      selectedQuestions = [
+        ...unansweredQuestions,
+        ...shuffle(alreadyAnswered).slice(0, 5 - unansweredQuestions.length)
+      ];
+    }
 
     const pointsPerQuestion = getPointsPerQuestion(user.level);
 

@@ -51,7 +51,7 @@ model Question {
   optionD       String
   correctAnswer String
   explanation   String
-  order         Int
+  order         Int?
   difficulty    String
   createdAt     DateTime @default(now())
   answers       Answer[]
