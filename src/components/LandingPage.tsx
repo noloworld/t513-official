@@ -543,10 +543,10 @@ export default function LandingPage() {
           <div className="container mx-auto px-4 relative">
             <div className="max-w-4xl mx-auto text-center">
               <h1 className="text-6xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-yellow-400 via-orange-500 to-red-500 mb-6 animate-gradient tracking-tight">
-                T513 SYSTEM
+                T513
               </h1>
               <p className="text-2xl text-gray-300 mb-12 font-light tracking-wide">
-                Uma nova era na comunidade Habbo!
+                Uma nova era!
               </p>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-12">
                 <div className="bg-white/10 backdrop-blur-md rounded-2xl p-6 transform hover:scale-105 transition-all duration-300">
@@ -742,7 +742,7 @@ export default function LandingPage() {
       <footer className="py-8 bg-black/20">
         <div className="container mx-auto px-4">
           <div className="text-center text-gray-400">
-            <p className="font-light">© 2024 T513 System. Todos os direitos reservados.</p>
+            <p className="font-light">© 2025 T513 - Uma nova Era!</p>
             <p className="text-sm mt-2 font-light">
               Não afiliado oficialmente ao Habbo Hotel.
             </p>
