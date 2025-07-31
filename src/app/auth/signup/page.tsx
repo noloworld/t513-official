@@ -1,14 +1,27 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import Link from "next/link";
 import { useAuth } from "@/hooks/useAuth";
+
+// Função debounce simples
+function debounce<T extends (...args: any[]) => any>(func: T, wait: number) {
+  let timeout: NodeJS.Timeout;
+  return (...args: Parameters<T>) => {
+    clearTimeout(timeout);
+    timeout = setTimeout(() => func(...args), wait);
+  };
+}
 
 export default function SignUp() {
   const { register, verify, error } = useAuth();
   const [step, setStep] = useState(1);
   const [isLoading, setIsLoading] = useState(false);
   const [verificationCode, setVerificationCode] = useState("");
+  const [nicknameStatus, setNicknameStatus] = useState<'idle' | 'checking' | 'valid' | 'invalid' | 'exists'>('idle');
+  const [nicknameMessage, setNicknameMessage] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [formData, setFormData] = useState({
     nickname: "",
     email: "",
@@ -43,6 +56,61 @@ export default function SignUp() {
     navigator.clipboard.writeText(verificationCode);
   };
 
+  // Função para verificar nickname em tempo real
+  const checkNickname = async (nickname: string) => {
+    if (!nickname || nickname.length < 3) {
+      setNicknameStatus('idle');
+      setNicknameMessage("");
+      return;
+    }
+
+    setNicknameStatus('checking');
+    setNicknameMessage("Verificando nickname...");
+
+    try {
+      // Primeiro, verificar se já existe no T513
+      const t513Response = await fetch('/api/auth/check-t513-nickname', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ nickname })
+      });
+
+      const t513Data = await t513Response.json();
+
+      if (t513Response.ok && t513Data.exists) {
+        setNicknameStatus('exists');
+        setNicknameMessage("❌ Este nickname já está em uso no T513");
+        return;
+      }
+
+      // Se não existe no T513, verificar no Habbo Hotel
+      const habboResponse = await fetch('/api/auth/check-habbo-nickname', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ nickname })
+      });
+
+      const habboData = await habboResponse.json();
+
+      if (habboResponse.ok && habboData.exists) {
+        setNicknameStatus('valid');
+        setNicknameMessage("✅ Nickname válido no Habbo Hotel");
+      } else {
+        setNicknameStatus('invalid');
+        setNicknameMessage("❌ Nickname não encontrado no Habbo Hotel");
+      }
+    } catch (error) {
+      setNicknameStatus('invalid');
+      setNicknameMessage("❌ Erro ao verificar nickname");
+    }
+  };
+
+  // Debounce para verificar nickname
+  const debouncedCheckNickname = useCallback(
+    debounce((nickname: string) => checkNickname(nickname), 500),
+    []
+  );
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-indigo-900 via-purple-900 to-purple-800 flex items-center justify-center p-4 animate-fadeIn">
       <div className="w-full max-w-md">
@@ -60,21 +128,42 @@ export default function SignUp() {
         )}
 
         <div className="flex justify-center mb-6">
-          <div className="w-16 h-16 bg-gradient-to-br from-orange-400 to-pink-500 rounded-2xl flex items-center justify-center text-white text-3xl font-bold shadow-xl transform -rotate-6 hover:rotate-0 hover:scale-110 transition-all duration-500 ease-out hover:shadow-orange-500/20 animate-fadeInRotate">
-            T
-          </div>
+                      <img 
+              src="/imagens/logo-oficial.png" 
+              alt="T513 Community" 
+              className="h-16 w-auto object-contain bg-transparent transform -rotate-6 hover:rotate-0 hover:scale-110 transition-all duration-500 ease-out animate-fadeInRotate"
+              style={{ 
+                filter: 'brightness(1.2) contrast(1.5) saturate(1.1) drop-shadow(0 0 10px rgba(255,255,255,0.1))'
+              }}
+            />
         </div>
 
         {step === 1 ? (
           <>
-            <div className="text-center mb-8 animate-slideDown">
-              <h1 className="text-3xl text-transparent bg-clip-text bg-gradient-to-r from-orange-400 via-pink-500 to-purple-500 font-bold mb-3">
-                #T513 - Uma nova era!
-              </h1>
-              <p className="text-gray-300">
-                Preencha seus dados básicos para começar
-              </p>
-            </div>
+                          <div className="text-center mb-8 animate-slideDown">
+                <h1 className="text-3xl text-transparent bg-clip-text bg-gradient-to-r from-orange-400 via-pink-500 to-purple-500 font-bold mb-3">
+                  Uma nova era!
+                </h1>
+                <p className="text-gray-300">
+                  Preencha os campos abaixo para criar sua conta
+                </p>
+              </div>
+
+              {/* Aviso de Segurança */}
+              <div className="mb-6 p-4 bg-gradient-to-r from-red-500/20 to-orange-500/20 border border-red-500/30 rounded-2xl backdrop-blur-sm animate-slideDown">
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 bg-red-500/20 rounded-lg flex items-center justify-center text-red-400">
+                    ⚠️
+                  </div>
+                  <div>
+                    <h3 className="text-red-400 font-semibold mb-1">Segurança</h3>
+                    <p className="text-red-300 text-sm">
+                      <strong>NÃO use o mesmo e-mail e senha do seu Habbo Hotel! </strong> 
+                        Use credenciais diferentes para manter sua conta segura.
+                    </p>
+                  </div>
+                </div>
+              </div>
 
             <div className="bg-white/10 backdrop-blur-md rounded-2xl p-8 shadow-2xl transform transition-all duration-500 ease-out hover:shadow-purple-500/10 hover:bg-white/[0.12] animate-slideUp">
               <form onSubmit={handleSubmit} className="space-y-6">
@@ -86,18 +175,38 @@ export default function SignUp() {
                     <input
                       type="text"
                       value={formData.nickname}
-                      onChange={(e) =>
-                        setFormData({ ...formData, nickname: e.target.value })
-                      }
-                      className="w-full px-5 py-4 bg-white/5 border border-white/10 rounded-xl text-white placeholder-white/50 focus:outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20 transition-all duration-300 ease-in-out hover:border-white/20"
+                      onChange={(e) => {
+                        const newNickname = e.target.value;
+                        setFormData({ ...formData, nickname: newNickname });
+                        debouncedCheckNickname(newNickname);
+                      }}
+                                                        className={`w-full px-5 py-4 bg-white/5 border rounded-xl text-white placeholder-white/50 focus:outline-none focus:ring-2 transition-all duration-300 ease-in-out hover:border-white/20 ${
+                                    nicknameStatus === 'valid'
+                                      ? 'border-green-500 focus:border-green-500 focus:ring-green-500/20'
+                                      : nicknameStatus === 'invalid' || nicknameStatus === 'exists'
+                                        ? 'border-red-500 focus:border-red-500 focus:ring-red-500/20'
+                                        : 'border-white/10 focus:border-purple-500 focus:ring-purple-500/20'
+                                  }`}
                       placeholder="Digite seu nick do Habbo"
                       required
                       disabled={isLoading}
                     />
-                    <div className="absolute right-4 top-4 text-2xl transform transition-all duration-300 ease-out group-hover:scale-110 group-hover:rotate-6">
-                      👤
-                    </div>
+                                                    <div className="absolute right-4 top-4 text-2xl transform transition-all duration-300 ease-out group-hover:scale-110 group-hover:rotate-6">
+                                  {nicknameStatus === 'checking' ? '⏳' :
+                                   nicknameStatus === 'valid' ? '✅' :
+                                   nicknameStatus === 'invalid' ? '❌' :
+                                   nicknameStatus === 'exists' ? '🚫' : '👤'}
+                                </div>
                   </div>
+                                                {nicknameMessage && (
+                                <p className={`text-sm mt-2 ${
+                                  nicknameStatus === 'valid' ? 'text-green-400' :
+                                  nicknameStatus === 'invalid' || nicknameStatus === 'exists' ? 'text-red-400' :
+                                  'text-yellow-400'
+                                }`}>
+                                  {nicknameMessage}
+                                </p>
+                              )}
                   <p className="mt-2 text-gray-400 text-sm">
                     Use exatamente o mesmo nick do seu Habbo
                   </p>
@@ -131,18 +240,28 @@ export default function SignUp() {
                   </label>
                   <div className="relative group">
                     <input
-                      type="password"
+                      type={showPassword ? "text" : "password"}
                       value={formData.password}
                       onChange={(e) =>
                         setFormData({ ...formData, password: e.target.value })
                       }
-                      className="w-full px-5 py-4 bg-white/5 border border-white/10 rounded-xl text-white placeholder-white/50 focus:outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20 transition-all duration-300 ease-in-out hover:border-white/20"
+                      className="w-full px-5 py-4 pr-20 bg-white/5 border border-white/10 rounded-xl text-white placeholder-white/50 focus:outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20 transition-all duration-300 ease-in-out hover:border-white/20"
                       placeholder="Digite sua senha"
                       required
                       disabled={isLoading}
                     />
-                    <div className="absolute right-4 top-4 text-2xl transform transition-all duration-300 ease-out group-hover:scale-110 group-hover:rotate-6">
-                      🔒
+                    <div className="absolute right-4 top-1/2 transform -translate-y-1/2 flex items-center gap-2">
+                      <div className="text-2xl transform transition-all duration-300 ease-out group-hover:scale-110 group-hover:rotate-6">
+                        🔒
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword(!showPassword)}
+                        className="text-2xl hover:scale-110 transition-all duration-300 ease-out cursor-pointer"
+                        disabled={isLoading}
+                      >
+                        {showPassword ? "👁️" : "👁️‍🗨️"}
+                      </button>
                     </div>
                   </div>
                 </div>
@@ -153,27 +272,37 @@ export default function SignUp() {
                   </label>
                   <div className="relative group">
                     <input
-                      type="password"
+                      type={showConfirmPassword ? "text" : "password"}
                       value={formData.confirmPassword}
                       onChange={(e) =>
                         setFormData({ ...formData, confirmPassword: e.target.value })
                       }
-                      className="w-full px-5 py-4 bg-white/5 border border-white/10 rounded-xl text-white placeholder-white/50 focus:outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20 transition-all duration-300 ease-in-out hover:border-white/20"
+                      className="w-full px-5 py-4 pr-20 bg-white/5 border border-white/10 rounded-xl text-white placeholder-white/50 focus:outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20 transition-all duration-300 ease-in-out hover:border-white/20"
                       placeholder="Digite sua senha novamente"
                       required
                       disabled={isLoading}
                     />
-                    <div className="absolute right-4 top-4 text-2xl transform transition-all duration-300 ease-out group-hover:scale-110 group-hover:rotate-6">
-                      🔒
+                    <div className="absolute right-4 top-1/2 transform -translate-y-1/2 flex items-center gap-2">
+                      <div className="text-2xl transform transition-all duration-300 ease-out group-hover:scale-110 group-hover:rotate-6">
+                        🔒
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                        className="text-2xl hover:scale-110 transition-all duration-300 ease-out cursor-pointer"
+                        disabled={isLoading}
+                      >
+                        {showConfirmPassword ? "👁️" : "👁️‍🗨️"}
+                      </button>
                     </div>
                   </div>
                 </div>
 
                 <button
                   type="submit"
-                  disabled={isLoading}
+                  disabled={isLoading || nicknameStatus === 'invalid' || nicknameStatus === 'checking' || nicknameStatus === 'exists'}
                   className={`w-full bg-gradient-to-r from-purple-500 to-pink-500 text-white py-4 rounded-xl font-medium text-lg hover:opacity-90 transform hover:scale-[1.02] transition-all duration-300 ease-out hover:shadow-lg hover:shadow-purple-500/20 group ${
-                    isLoading ? 'opacity-70 cursor-not-allowed' : ''
+                    isLoading || nicknameStatus === 'invalid' || nicknameStatus === 'checking' || nicknameStatus === 'exists' ? 'opacity-70 cursor-not-allowed' : ''
                   }`}
                 >
                   {isLoading ? (
@@ -323,7 +452,7 @@ export default function SignUp() {
               href="/auth/signin"
               className="text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-400 hover:from-purple-500 hover:to-pink-500 transition-all duration-300 ease-in-out hover:scale-105 inline-block"
             >
-              Fazer Login
+              Login
             </Link>
           </p>
         </div>

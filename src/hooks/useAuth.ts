@@ -62,10 +62,25 @@ export function useAuth() {
     checkAuth();
   }, []);
 
-  // Verificar autenticação periodicamente
+  // Verificar autenticação periodicamente (desabilitado temporariamente)
+  // useEffect(() => {
+  //   const interval = setInterval(checkAuth, 30000); // A cada 30 segundos
+  //   return () => clearInterval(interval);
+  // }, []);
+
+  // Listener para atualização de pontos em tempo real
   useEffect(() => {
-    const interval = setInterval(checkAuth, 30000); // A cada 30 segundos
-    return () => clearInterval(interval);
+    const handleUserPointsUpdated = (event: CustomEvent) => {
+      if (event.detail?.user) {
+        setUser(event.detail.user);
+      }
+    };
+
+    window.addEventListener('userPointsUpdated', handleUserPointsUpdated as EventListener);
+    
+    return () => {
+      window.removeEventListener('userPointsUpdated', handleUserPointsUpdated as EventListener);
+    };
   }, []);
 
   const login = async (nickname: string, password: string) => {
@@ -155,14 +170,19 @@ export function useAuth() {
   const logout = async () => {
     try {
       console.log('[useAuth] Fazendo logout...');
+      setUser(null); // Limpa o estado imediatamente
       await fetch('/api/auth/logout', { method: 'POST' });
-      setUser(null);
+      // Limpa o localStorage e sessionStorage
+      localStorage.clear();
+      sessionStorage.clear();
       // Força uma atualização da página para recarregar o estado
-      window.location.reload();
+      window.location.href = '/';
     } catch (error) {
       console.error('[useAuth] Erro ao fazer logout:', error);
       setUser(null);
-      window.location.reload();
+      localStorage.clear();
+      sessionStorage.clear();
+      window.location.href = '/';
     }
   };
 

@@ -187,15 +187,20 @@ export function DonationProvider({ children }: { children: React.ReactNode }) {
   const startDonation = async () => {
     try {
       const response = await fetch('/api/donations/start', { method: 'POST' });
+      
       if (response.ok) {
         const data = await response.json();
         setIsLive(true);
         setStartTime(new Date(data.startTime));
         setIsQueueStopped(false);
         setQueueResults(null);
+      } else {
+        const errorData = await response.json();
+        alert(errorData.error || 'Erro ao iniciar doação');
       }
     } catch (error) {
       console.error('Erro ao iniciar doação:', error);
+      alert('Erro ao iniciar doação. Tente novamente.');
     }
   };
 

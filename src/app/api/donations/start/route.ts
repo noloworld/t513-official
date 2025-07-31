@@ -5,6 +5,7 @@ import { getCurrentUser } from '@/lib/auth';
 export async function POST(request: NextRequest) {
   try {
     const user = await getCurrentUser(request);
+    
     if (!user) {
       return NextResponse.json(
         { error: 'Não autenticado' },

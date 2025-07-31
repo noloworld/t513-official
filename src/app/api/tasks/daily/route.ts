@@ -55,7 +55,8 @@ export async function GET(request: NextRequest) {
     if (todayAttempt) {
       return NextResponse.json({ 
         canDoTask: false, 
-        message: "Você já completou a tarefa de hoje. Volte amanhã!" 
+        message: "Você já completou a tarefa de hoje. Volte amanhã!",
+        nextAvailableAt: tomorrow.toISOString()
       });
     }
 

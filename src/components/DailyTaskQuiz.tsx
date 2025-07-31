@@ -51,10 +51,30 @@ export default function DailyTaskQuiz({ onClose }: DailyTaskQuizProps) {
   const [pointsPerQuestion, setPointsPerQuestion] = useState(5);
   const [error, setError] = useState<string | null>(null);
   const [timer, setTimer] = useState(0);
+  const [nextTaskTimer, setNextTaskTimer] = useState(0);
+  const [wasReloaded, setWasReloaded] = useState(false);
+  const [showReloadWarning, setShowReloadWarning] = useState(false);
+  const [showCompleteWarning, setShowCompleteWarning] = useState(false);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
+  const nextTaskTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     fetchDailyTask();
+    
+    // Detectar se houve reload na página
+    const wasReloaded = sessionStorage.getItem('taskReloaded');
+    if (wasReloaded) {
+      setWasReloaded(true);
+      setShowReloadWarning(true);
+      sessionStorage.removeItem('taskReloaded');
+    }
+    
+    // Marcar que pode ter reload na próxima vez
+    sessionStorage.setItem('taskReloaded', 'true');
+    
+    return () => {
+      sessionStorage.removeItem('taskReloaded');
+    };
   }, []);
 
   const fetchDailyTask = async () => {
@@ -101,17 +121,28 @@ export default function DailyTaskQuiz({ onClose }: DailyTaskQuizProps) {
   };
 
   const handleSubmit = async () => {
+    console.log("[DEBUG] handleSubmit chamado");
+    console.log("[DEBUG] task:", task);
+    console.log("[DEBUG] answers:", answers);
+    console.log("[DEBUG] Object.keys(answers).length:", Object.keys(answers).length);
+    console.log("[DEBUG] task?.questions.length:", task?.questions.length);
+    
     if (!task || Object.keys(answers).length !== task.questions.length) {
+      console.log("[DEBUG] Erro: não respondeu todas as perguntas");
       setError('Por favor, responda todas as perguntas');
       return;
     }
 
     setSubmitting(true);
+    console.log("[DEBUG] Iniciando submissão...");
+    
     try {
       const submitAnswers = task.questions.map(q => ({
         questionId: q.id,
         answer: answers[q.id]
       }));
+      
+      console.log("[DEBUG] submitAnswers:", submitAnswers);
 
       const response = await fetch('/api/tasks/submit', {
         method: 'POST',
@@ -124,18 +155,31 @@ export default function DailyTaskQuiz({ onClose }: DailyTaskQuizProps) {
         })
       });
 
+      console.log("[DEBUG] Response status:", response.status);
       const data = await response.json();
+      console.log("[DEBUG] Response data:", data);
 
       if (!response.ok) {
+        console.log("[DEBUG] Erro na resposta:", data.error);
         setError(data.error || 'Erro ao submeter respostas');
         return;
       }
 
+      console.log("[DEBUG] Sucesso! Definindo resultados...");
       setResults(data.results);
       setQuizCompleted(true);
+      
+      // Iniciar timer para próxima tarefa (24 horas = 86400 segundos)
+      setNextTaskTimer(86400);
+      if (nextTaskTimerRef.current) clearInterval(nextTaskTimerRef.current);
+      nextTaskTimerRef.current = setInterval(() => {
+        setNextTaskTimer(prev => Math.max(0, prev - 1));
+      }, 1000);
     } catch (error) {
+      console.error("[DEBUG] Erro catch:", error);
       setError('Erro ao submeter respostas');
     } finally {
+      console.log("[DEBUG] Finalizando submissão");
       setSubmitting(false);
     }
   };
@@ -161,6 +205,14 @@ export default function DailyTaskQuiz({ onClose }: DailyTaskQuizProps) {
     }
   };
 
+  // Função para formatar tempo restante
+  const formatTimeRemaining = (seconds: number) => {
+    const hours = Math.floor(seconds / 3600);
+    const minutes = Math.floor((seconds % 3600) / 60);
+    const secs = seconds % 60;
+    return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+  };
+
   // Resetar timer ao trocar de pergunta
   useEffect(() => {
     if (!task) return;
@@ -176,6 +228,14 @@ export default function DailyTaskQuiz({ onClose }: DailyTaskQuizProps) {
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentQuestion, task]);
+
+  // Cleanup dos timers quando o componente for desmontado
+  useEffect(() => {
+    return () => {
+      if (timerRef.current) clearInterval(timerRef.current);
+      if (nextTaskTimerRef.current) clearInterval(nextTaskTimerRef.current);
+    };
+  }, []);
 
   // Avançar automaticamente ao zerar o timer
   useEffect(() => {
@@ -223,11 +283,28 @@ export default function DailyTaskQuiz({ onClose }: DailyTaskQuizProps) {
 
   if (quizCompleted && results) {
     const score = results.filter(r => r.isCorrect).length;
-    const totalPoints = score * pointsPerQuestion;
+    const totalPoints = wasReloaded ? 0 : score * pointsPerQuestion;
 
     return (
       <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
         <div className="bg-white/10 backdrop-blur-md rounded-2xl p-6 max-w-2xl w-full max-h-[80vh] overflow-y-auto">
+          {/* Aviso de reload */}
+          {showReloadWarning && (
+            <div className="mb-6 p-4 bg-gradient-to-r from-red-500/20 to-orange-500/20 border border-red-500/30 rounded-2xl backdrop-blur-sm">
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 bg-red-500/20 rounded-lg flex items-center justify-center text-red-400">
+                  ⚠️
+                </div>
+                <div>
+                  <h3 className="text-red-400 font-semibold mb-1">Aviso Importante</h3>
+                  <p className="text-red-300 text-sm">
+                    Como você deu reload na página, ganhou 0 pontos e só poderá completar a tarefa daqui a 24 horas.
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+
           <div className="text-center mb-6">
             <div className="text-6xl mb-4">
               {score === results.length ? '🎉' : score >= results.length / 2 ? '👍' : '😔'}
@@ -236,9 +313,17 @@ export default function DailyTaskQuiz({ onClose }: DailyTaskQuizProps) {
             <p className="text-gray-300">
               Você acertou {score} de {results.length} perguntas
             </p>
-            <p className="text-yellow-400 font-semibold">
-              +{totalPoints} pontos ganhos!
+            <p className={`font-semibold ${wasReloaded ? 'text-red-400' : 'text-yellow-400'}`}>
+              {wasReloaded ? '0 pontos ganhos (devido ao reload)' : `+${totalPoints} pontos ganhos!`}
             </p>
+            
+            {/* Timer para próxima tarefa */}
+            <div className="mt-4 p-4 bg-gradient-to-r from-blue-500/20 to-purple-500/20 border border-blue-500/30 rounded-2xl">
+              <h4 className="text-blue-400 font-semibold mb-2">⏰ Próxima Tarefa Disponível em:</h4>
+              <div className="text-2xl font-mono text-blue-300">
+                {formatTimeRemaining(nextTaskTimer)}
+              </div>
+            </div>
           </div>
 
           <div className="space-y-4 mb-6">
@@ -291,20 +376,23 @@ export default function DailyTaskQuiz({ onClose }: DailyTaskQuizProps) {
   const allAnswered = Object.keys(answers).length === task.questions.length;
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white/10 backdrop-blur-md rounded-2xl p-6 max-w-2xl w-full">
+    <div 
+      className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
+      onClick={() => setShowCompleteWarning(true)}
+    >
+      <div 
+        className="bg-white/10 backdrop-blur-md rounded-2xl p-6 max-w-2xl w-full"
+        onClick={(e) => e.stopPropagation()}
+      >
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
           <div>
             <h3 className="text-xl font-semibold text-white">{task.title}</h3>
             <p className="text-gray-400">Pergunta {currentQuestion + 1} de {task.questions.length}</p>
           </div>
-          <button
-            onClick={onClose}
-            className="text-gray-400 hover:text-white transition-colors"
-          >
-            ✕
-          </button>
+          <div className="text-gray-400">
+            🔒
+          </div>
         </div>
 
         {/* Progress Bar */}
@@ -375,6 +463,28 @@ export default function DailyTaskQuiz({ onClose }: DailyTaskQuizProps) {
           )}
         </div>
       </div>
+      
+      {/* Modal de aviso para completar tarefa */}
+      {showCompleteWarning && (
+        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-[60]">
+          <div className="bg-white/10 backdrop-blur-md rounded-2xl p-8 max-w-md w-full mx-4">
+            <div className="text-center">
+              <div className="text-yellow-400 text-6xl mb-4">⚠️</div>
+              <h3 className="text-xl font-semibold text-white mb-4">Complete a Tarefa Primeiro!</h3>
+              <p className="text-gray-300 mb-6">
+                Você precisa completar a tarefa diária antes de sair. 
+                Não é possível cancelar uma vez iniciada.
+              </p>
+              <button
+                onClick={() => setShowCompleteWarning(false)}
+                className="w-full bg-purple-500 hover:bg-purple-600 text-white py-3 rounded-lg font-medium transition-colors"
+              >
+                Entendi, vou continuar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 } 

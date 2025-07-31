@@ -20,6 +20,7 @@ export async function POST(request: NextRequest) {
     const token = request.cookies.get("auth_token")?.value;
     console.log("[DEBUG] Token recebido:", !!token);
     if (!token) {
+      console.log("[DEBUG] Erro: Token não fornecido");
       return NextResponse.json({ error: "Token não fornecido" }, { status: 401 });
     }
 
@@ -30,6 +31,13 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     console.log("[DEBUG] Body recebido:", body);
     const { answers }: { answers: SubmitAnswer[] } = body;
+
+    if (!answers || !Array.isArray(answers)) {
+      console.log("[DEBUG] Erro: answers inválido");
+      return NextResponse.json({ error: "Respostas inválidas" }, { status: 400 });
+    }
+
+    console.log("[DEBUG] Número de respostas:", answers.length);
 
     // Verificar se já fez a tarefa hoje
     const today = new Date();
@@ -47,7 +55,10 @@ export async function POST(request: NextRequest) {
       }
     });
 
+    console.log("[DEBUG] Tentativa de hoje encontrada:", !!todayAttempt);
+
     if (todayAttempt) {
+      console.log("[DEBUG] Erro: já fez tarefa hoje");
       return NextResponse.json({ 
         error: "Você já completou a tarefa de hoje. Volte amanhã!" 
       }, { status: 400 });
@@ -55,7 +66,9 @@ export async function POST(request: NextRequest) {
 
     // Buscar usuário
     const user = await prisma.user.findUnique({ where: { id: userId } });
+    console.log("[DEBUG] Usuário encontrado:", !!user);
     if (!user) {
+      console.log("[DEBUG] Erro: usuário não encontrado");
       return NextResponse.json({ error: "Usuário não encontrado" }, { status: 404 });
     }
 
@@ -80,6 +93,7 @@ export async function POST(request: NextRequest) {
     for (const answer of answers) {
       const question = questions.find(q => q.id === answer.questionId);
       if (!question) {
+        console.log("[DEBUG] Erro: pergunta não encontrada para ID:", answer.questionId);
         return NextResponse.json({ error: "Pergunta não encontrada" }, { status: 400 });
       }
 
@@ -102,7 +116,11 @@ export async function POST(request: NextRequest) {
       });
     }
 
+    console.log("[DEBUG] Respostas corretas:", correctAnswers);
+    console.log("[DEBUG] Total de perguntas:", questions.length);
+
     const totalPoints = calculateTaskPoints(user.level, correctAnswers);
+    console.log("[DEBUG] Pontos calculados:", totalPoints);
 
     // Criar uma Task temporária para registrar a tentativa
     const tempTask = await prisma.task.create({
@@ -112,6 +130,7 @@ export async function POST(request: NextRequest) {
         isActive: false
       }
     });
+    console.log("[DEBUG] Task temporária criada:", tempTask.id);
 
     // Criar tentativa da tarefa
     const attempt = await prisma.taskAttempt.create({
@@ -122,6 +141,7 @@ export async function POST(request: NextRequest) {
         totalPoints
       }
     });
+    console.log("[DEBUG] Tentativa criada:", attempt.id);
 
     // Criar respostas individuais
     for (const result of results) {
@@ -135,6 +155,7 @@ export async function POST(request: NextRequest) {
         }
       });
     }
+    console.log("[DEBUG] Respostas individuais criadas");
 
     // Atualizar pontos do usuário
     const newTotalPoints = user.points + totalPoints;
@@ -148,6 +169,7 @@ export async function POST(request: NextRequest) {
         level: newLevel
       }
     });
+    console.log("[DEBUG] Usuário atualizado - novos pontos:", newTotalPoints, "novo nível:", newLevel);
 
     // Verificar emblemas conquistados
     const tasksCompleted = await prisma.taskAttempt.count({
@@ -205,6 +227,7 @@ export async function POST(request: NextRequest) {
 
     const pointsToNextLevel = getPointsToNextLevel(newTotalPoints, newLevel);
 
+    console.log("[DEBUG] Retornando resposta de sucesso");
     return NextResponse.json({
       success: true,
       results,

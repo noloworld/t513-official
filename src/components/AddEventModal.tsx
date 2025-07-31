@@ -141,11 +141,11 @@ export default function AddEventModal({ onClose, onSuccess }: AddEventModalProps
               className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded-lg text-white focus:outline-none focus:border-purple-500"
               required
             >
-              <option value="Evento Especial">Evento Especial</option>
-              <option value="Competição">Competição</option>
-              <option value="Quiz">Quiz</option>
-              <option value="Doação">Doação</option>
-              <option value="Festa">Festa</option>
+              <option value="Evento Especial" className="bg-gray-800 text-white">Evento Especial</option>
+              <option value="Competição" className="bg-gray-800 text-white">Competição</option>
+              <option value="Quiz" className="bg-gray-800 text-white">Quiz</option>
+              <option value="Doação" className="bg-gray-800 text-white">Doação</option>
+              <option value="Festa" className="bg-gray-800 text-white">Festa</option>
             </select>
           </div>
 
@@ -160,10 +160,10 @@ export default function AddEventModal({ onClose, onSuccess }: AddEventModalProps
               className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded-lg text-white focus:outline-none focus:border-purple-500"
               required
             >
-              <option value="Em Breve">Em Breve</option>
-              <option value="Ativo">Ativo</option>
-              <option value="Finalizado">Finalizado</option>
-              <option value="Cancelado">Cancelado</option>
+              <option value="Em Breve" className="bg-gray-800 text-white">Em Breve</option>
+              <option value="Ativo" className="bg-gray-800 text-white">Ativo</option>
+              <option value="Finalizado" className="bg-gray-800 text-white">Finalizado</option>
+              <option value="Cancelado" className="bg-gray-800 text-white">Cancelado</option>
             </select>
           </div>
 

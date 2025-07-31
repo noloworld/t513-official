@@ -16,6 +16,7 @@ function SignInContent() {
   });
 
   const [isLoading, setIsLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -63,17 +64,22 @@ function SignInContent() {
         )}
 
         <div className="flex justify-center mb-8">
-          <div className="w-16 h-16 bg-gradient-to-br from-yellow-400 to-orange-500 rounded-2xl flex items-center justify-center text-white text-3xl font-bold shadow-xl transform -rotate-6 hover:rotate-0 hover:scale-110 transition-all duration-500 ease-out hover:shadow-orange-500/20 animate-fadeInRotate">
-            H
-          </div>
+                      <img 
+              src="/imagens/logo-oficial.png" 
+              alt="T513 Community" 
+              className="h-16 w-auto object-contain bg-transparent transform -rotate-6 hover:rotate-0 hover:scale-110 transition-all duration-500 ease-out animate-fadeInRotate"
+              style={{ 
+                filter: 'brightness(1.2) contrast(1.5) saturate(1.1) drop-shadow(0 0 10px rgba(255,255,255,0.1))'
+              }}
+            />
         </div>
 
         <div className="text-center mb-8 transform transition-all duration-500 ease-out hover:scale-[1.02] animate-slideDown">
           <h1 className="text-3xl text-transparent bg-clip-text bg-gradient-to-r from-yellow-400 via-orange-500 to-red-500 font-bold mb-3">
-            Fazer Login
+            Login
           </h1>
           <p className="text-gray-300">
-            Entre na sua conta da comunidade Habbo
+            Entre na sua conta para ganhar prêmios
           </p>
         </div>
 
@@ -107,18 +113,28 @@ function SignInContent() {
               </label>
               <div className="relative group">
                 <input
-                  type="password"
+                  type={showPassword ? "text" : "password"}
                   value={formData.password}
                   onChange={(e) =>
                     setFormData({ ...formData, password: e.target.value })
                   }
-                  className="w-full px-5 py-4 bg-white/5 border border-white/10 rounded-xl text-white placeholder-white/50 focus:outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20 transition-all duration-300 ease-in-out hover:border-white/20"
+                  className="w-full px-5 py-4 pr-20 bg-white/5 border border-white/10 rounded-xl text-white placeholder-white/50 focus:outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20 transition-all duration-300 ease-in-out hover:border-white/20"
                   placeholder="Digite sua senha"
                   required
                   disabled={isLoading}
                 />
-                <div className="absolute right-4 top-4 text-2xl transform transition-all duration-300 ease-out group-hover:scale-110 group-hover:rotate-6">
-                  🔒
+                <div className="absolute right-4 top-1/2 transform -translate-y-1/2 flex items-center gap-2">
+                  <div className="text-2xl transform transition-all duration-300 ease-out group-hover:scale-110 group-hover:rotate-6">
+                    🔒
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="text-2xl hover:scale-110 transition-all duration-300 ease-out cursor-pointer"
+                    disabled={isLoading}
+                  >
+                    {showPassword ? "👁️" : "👁️‍🗨️"}
+                  </button>
                 </div>
               </div>
             </div>

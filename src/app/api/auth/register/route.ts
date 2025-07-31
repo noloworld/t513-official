@@ -58,8 +58,27 @@ export async function POST(request: NextRequest) {
 
     if (existingUserByNickname) {
       return NextResponse.json(
-        { error: 'Este nickname já está em uso' },
+        { error: 'Este nickname já está em uso no T513' },
         { status: 400 }
+      );
+    }
+
+    // Verifica se o nickname existe no Habbo Hotel
+    try {
+      const habboUrl = `https://www.habbo.com.br/habbo-imaging/avatarimage?user=${encodeURIComponent(nickname)}&action=std&direction=2&head_direction=2&gesture=std&size=m`;
+      const habboResponse = await fetch(habboUrl);
+      
+      if (!habboResponse.ok) {
+        return NextResponse.json(
+          { error: 'Este nickname não existe no Habbo Hotel. Verifique se está escrito corretamente.' },
+          { status: 400 }
+        );
+      }
+    } catch (error) {
+      console.error('Erro ao verificar nickname no Habbo:', error);
+      return NextResponse.json(
+        { error: 'Erro ao verificar nickname no Habbo Hotel. Tente novamente.' },
+        { status: 500 }
       );
     }
 

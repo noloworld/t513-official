@@ -35,15 +35,22 @@ export function getExperienceForLevel(level: number): number {
 
 // Função para calcular o nível baseado nos pontos totais
 export function calculateLevel(totalPoints: number): number {
-  let level = 1;
-  let pointsNeeded = 0;
+  if (totalPoints <= 0) return 1;
   
-  while (pointsNeeded <= totalPoints && level < 100) {
-    level++;
-    pointsNeeded += getExperienceForLevel(level - 1);
+  let level = 1;
+  let accumulatedPoints = 0;
+  
+  // Calcular pontos necessários para cada nível
+  for (let i = 1; i <= 100; i++) {
+    const pointsForThisLevel = getExperienceForLevel(i);
+    accumulatedPoints += pointsForThisLevel;
+    
+    if (totalPoints < accumulatedPoints) {
+      return i;
+    }
   }
   
-  return Math.min(level - 1, 100);
+  return 100; // Máximo nível
 }
 
 // Função para calcular pontos restantes para o próximo nível

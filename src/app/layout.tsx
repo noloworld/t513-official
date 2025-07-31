@@ -68,8 +68,14 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             )}
             {/* Modal de Sugestão */}
             {showSuggestionModal && (
-              <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-                <div className="bg-white rounded-xl p-8 w-full max-w-md shadow-lg relative">
+              <div 
+                className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
+                onClick={() => setShowSuggestionModal(false)}
+              >
+                <div 
+                  className="bg-white rounded-xl p-8 w-full max-w-md shadow-lg relative"
+                  onClick={(e) => e.stopPropagation()}
+                >
                   <button
                     className="absolute top-2 right-2 text-gray-500 hover:text-gray-700"
                     onClick={() => setShowSuggestionModal(false)}

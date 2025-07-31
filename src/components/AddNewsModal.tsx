@@ -125,11 +125,11 @@ export default function AddNewsModal({ onClose, onSuccess }: AddNewsModalProps) 
               className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded-lg text-white focus:outline-none focus:border-purple-500"
               required
             >
-              <option value="Novidade">Novidade</option>
-              <option value="Atualização">Atualização</option>
-              <option value="Anúncio">Anúncio</option>
-              <option value="Evento">Evento</option>
-              <option value="Manutenção">Manutenção</option>
+              <option value="Novidade" className="bg-gray-800 text-white">Novidade</option>
+              <option value="Atualização" className="bg-gray-800 text-white">Atualização</option>
+              <option value="Anúncio" className="bg-gray-800 text-white">Anúncio</option>
+              <option value="Evento" className="bg-gray-800 text-white">Evento</option>
+              <option value="Manutenção" className="bg-gray-800 text-white">Manutenção</option>
             </select>
           </div>
 

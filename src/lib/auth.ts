@@ -63,7 +63,9 @@ export async function getCurrentUser(request?: NextRequest): Promise<UserData | 
     ? request.cookies.get('auth_token')?.value
     : (await cookies()).get('auth_token')?.value;
 
-  if (!token) return null;
+  if (!token) {
+    return null;
+  }
 
   return await verifyToken(token);
 }
@@ -81,7 +83,9 @@ export function isValidPassword(password: string): boolean {
 
 // Função para validar nickname
 export function isValidNickname(nickname: string): boolean {
-  return nickname.length >= 3 && /^[a-zA-Z0-9._-]+$/.test(nickname);
+  // Validação mais permissiva - aceita caracteres especiais comuns do Habbo
+  // A validação real é feita pela API do Habbo Hotel
+  return nickname.length >= 3 && nickname.length <= 20 && /^[a-zA-Z0-9._\-=@\[\]:!?+*#]+$/.test(nickname);
 } 
 
 // Função para verificar a missão do Habbo
