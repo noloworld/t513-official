@@ -17,7 +17,10 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const page = parseInt(searchParams.get('page') || '1', 10);
     const pageSize = parseInt(searchParams.get('pageSize') || '10', 10);
-    const where = { OR: [{ role: 'user' }, { role: 'helper' }] };
+    
+    // Mostrar todos os usuários exceto admins (para evitar confusão)
+    const where = { role: { not: 'admin' } };
+    
     const total = await prisma.user.count({ where });
     const users = await prisma.user.findMany({
       where,
@@ -34,6 +37,9 @@ export async function GET(request: NextRequest) {
         createdAt: true
       }
     });
+    
+    console.log('Usuários encontrados:', users.length, 'Total:', total);
+    
     return NextResponse.json({
       users,
       total,

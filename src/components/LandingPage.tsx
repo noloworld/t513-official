@@ -822,6 +822,7 @@ export default function LandingPage() {
                 <tr>
                   <th className="px-3 py-2 text-left">Avatar</th>
                   <th className="px-3 py-2 text-left">Nick</th>
+                  <th className="px-3 py-2 text-left">Role</th>
                   <th className="px-3 py-2 text-left">Pontos</th>
                   <th className="px-3 py-2 text-left">Nível</th>
                   <th className="px-3 py-2 text-left">Tarefas</th>
@@ -836,6 +837,16 @@ export default function LandingPage() {
                       <img src={`https://www.habbo.com.br/habbo-imaging/avatarimage?user=${u.nickname}&action=std&direction=2&head_direction=2&gesture=std&size=m`} alt={u.nickname} className="w-10 h-10 rounded-full" />
                     </td>
                     <td className="px-3 py-2">{u.nickname}</td>
+                    <td className="px-3 py-2">
+                      <span className={`px-2 py-1 rounded-full text-xs font-semibold ${
+                        u.role === 'moderator' ? 'bg-purple-600 text-white' :
+                        u.role === 'helper' ? 'bg-yellow-600 text-white' :
+                        'bg-gray-600 text-white'
+                      }`}>
+                        {u.role === 'moderator' ? 'Moderador' :
+                         u.role === 'helper' ? 'Ajudante' : 'Usuário'}
+                      </span>
+                    </td>
                     <td className="px-3 py-2">{u.points}</td>
                     <td className="px-3 py-2">{u.level}</td>
                     <td className="px-3 py-2">{u.tasksCompleted || 0}</td>
@@ -854,12 +865,16 @@ export default function LandingPage() {
                         <button onClick={() => handleMakeHelper(u.id)} className="px-2 py-1 bg-yellow-600 hover:bg-yellow-700 text-white rounded-lg text-xs">Adicionar como Ajudante</button>
                       )}
                       {/* Adicionar como moderador: apenas admin */}
-                      {user.role === 'admin' && u.role !== 'moderator' && (
+                      {user.role === 'admin' && (u.role === 'user' || u.role === 'helper') && (
                         <button onClick={() => handleMakeModerator(u.id)} className="px-2 py-1 bg-purple-600 hover:bg-purple-700 text-white rounded-lg text-xs">Adicionar como Moderador</button>
                       )}
                       {/* Remover como ajudante: moderador, admin */}
                       {(user.role === 'admin' || user.role === 'moderator') && u.role === 'helper' && (
                         <button onClick={() => handleRemoveHelper(u.id)} className="px-2 py-1 bg-yellow-800 hover:bg-yellow-900 text-white rounded-lg text-xs">Remover como Ajudante</button>
+                      )}
+                      {/* Rebaixar moderador: apenas admin */}
+                      {user.role === 'admin' && u.role === 'moderator' && (
+                        <button onClick={() => handleRemoveHelper(u.id)} className="px-2 py-1 bg-red-800 hover:bg-red-900 text-white rounded-lg text-xs">Rebaixar Moderador</button>
                       )}
                     </td>
                   </tr>
