@@ -262,23 +262,96 @@ export default function LandingPage() {
 
   const handleDeleteUser = async (id: string) => {
     if (!window.confirm('Tem certeza que deseja eliminar este usuário? Essa ação não pode ser desfeita.')) return;
-    await fetch(`/api/users/${id}`, { method: 'DELETE', credentials: 'include' });
-    fetchUsers(usersPage);
+    
+    try {
+      console.log('Tentando eliminar usuário:', id);
+      const response = await fetch(`/api/users/${id}`, { 
+        method: 'DELETE', 
+        credentials: 'include' 
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        console.log('Usuário eliminado:', data);
+        fetchUsers(usersPage);
+      } else {
+        const errorData = await response.json();
+        console.error('Erro ao eliminar usuário:', errorData);
+        alert('Erro ao eliminar usuário: ' + (errorData.error || 'Erro desconhecido'));
+      }
+    } catch (error) {
+      console.error('Erro na requisição:', error);
+      alert('Erro ao eliminar usuário. Verifique a conexão.');
+    }
   };
 
   const handleMakeHelper = async (id: string) => {
-    await fetch(`/api/users/${id}/make-helper`, { method: 'POST', credentials: 'include' });
-    fetchUsers(usersPage);
+    try {
+      console.log('Tentando tornar usuário ajudante:', id);
+      const response = await fetch(`/api/users/${id}/make-helper`, { 
+        method: 'POST', 
+        credentials: 'include' 
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        console.log('Usuário promovido a ajudante:', data);
+        fetchUsers(usersPage);
+      } else {
+        const errorData = await response.json();
+        console.error('Erro ao promover usuário:', errorData);
+        alert('Erro ao promover usuário: ' + (errorData.error || 'Erro desconhecido'));
+      }
+    } catch (error) {
+      console.error('Erro na requisição:', error);
+      alert('Erro ao promover usuário. Verifique a conexão.');
+    }
   };
 
   const handleMakeModerator = async (id: string) => {
-    await fetch(`/api/users/${id}/make-moderator`, { method: 'POST', credentials: 'include' });
-    fetchUsers(usersPage);
+    try {
+      console.log('Tentando tornar usuário moderador:', id);
+      const response = await fetch(`/api/users/${id}/make-moderator`, { 
+        method: 'POST', 
+        credentials: 'include' 
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        console.log('Usuário promovido a moderador:', data);
+        fetchUsers(usersPage);
+      } else {
+        const errorData = await response.json();
+        console.error('Erro ao promover usuário:', errorData);
+        alert('Erro ao promover usuário: ' + (errorData.error || 'Erro desconhecido'));
+      }
+    } catch (error) {
+      console.error('Erro na requisição:', error);
+      alert('Erro ao promover usuário. Verifique a conexão.');
+    }
   };
 
   const handleRemoveHelper = async (id: string) => {
-    await fetch(`/api/users/${id}/remove-helper`, { method: 'POST', credentials: 'include' });
-    fetchUsers(usersPage);
+    try {
+      console.log('Tentando remover usuário como ajudante:', id);
+      const response = await fetch(`/api/users/${id}/remove-helper`, { 
+        method: 'POST', 
+        credentials: 'include' 
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        console.log('Usuário removido como ajudante:', data);
+        fetchUsers(usersPage);
+      } else {
+        const errorData = await response.json();
+        console.error('Erro ao remover usuário:', errorData);
+        alert('Erro ao remover usuário: ' + (errorData.error || 'Erro desconhecido'));
+      }
+    } catch (error) {
+      console.error('Erro na requisição:', error);
+      alert('Erro ao remover usuário. Verifique a conexão.');
+    }
   };
 
   const fetchHelpRequests = async () => {
