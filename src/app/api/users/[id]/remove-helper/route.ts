@@ -2,7 +2,10 @@ import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { getCurrentUser } from '@/lib/auth';
 
-export async function POST(request: NextRequest, context: { params: { id: string } }) {
+export async function POST(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
   try {
     console.log('Iniciando processo de remoção de ajudante...');
     
@@ -14,7 +17,7 @@ export async function POST(request: NextRequest, context: { params: { id: string
       return NextResponse.json({ error: 'Acesso negado' }, { status: 403 });
     }
 
-    const { id } = context.params;
+    const { id } = await params;
     console.log('ID do usuário para remover como ajudante:', id);
 
     if (!id) {
