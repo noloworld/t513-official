@@ -811,12 +811,13 @@ export default function LandingPage() {
   ) : null;
   const listaUsuarios = (user?.role === 'admin' || user?.role === 'moderator') ? (
     <div className="container mx-auto px-4 mt-8 mb-8">
-      <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-6">
-        <h2 className="text-xl font-semibold text-white mb-4">👥 Lista de Usuários</h2>
-        {usersLoading ? (
-          <div className="text-white">Carregando...</div>
-        ) : (
-          <div className="overflow-x-auto">
+      <h2 className="text-xl font-semibold text-white mb-4">👥 Lista de Usuários</h2>
+      {usersLoading ? (
+        <div className="text-white">Carregando...</div>
+      ) : (
+        <>
+          {/* Desktop: Tabela */}
+          <div className="hidden lg:block overflow-x-auto">
             <table className="min-w-full text-sm text-white">
               <thead>
                 <tr>
@@ -881,15 +882,122 @@ export default function LandingPage() {
                 ))}
               </tbody>
             </table>
-            {/* Paginação */}
-            <div className="flex justify-center items-center gap-2 mt-4">
-              <button disabled={usersPage === 1} onClick={() => setUsersPage(usersPage - 1)} className="px-3 py-1 bg-gray-700 text-white rounded disabled:opacity-50">Anterior</button>
-              <span className="text-white">Página {usersPage} de {usersTotalPages}</span>
-              <button disabled={usersPage === usersTotalPages} onClick={() => setUsersPage(usersPage + 1)} className="px-3 py-1 bg-gray-700 text-white rounded disabled:opacity-50">Próxima</button>
-            </div>
           </div>
-        )}
-      </div>
+
+          {/* Mobile: Cards */}
+          <div className="lg:hidden grid gap-4">
+            {users.map((u) => (
+              <div key={u.id} className="bg-white/10 backdrop-blur-sm rounded-xl p-4 border border-white/20">
+                <div className="flex items-start gap-4 mb-4">
+                  <img 
+                    src={`https://www.habbo.com.br/habbo-imaging/avatarimage?user=${u.nickname}&action=std&direction=2&head_direction=2&gesture=std&size=m`} 
+                    alt={u.nickname} 
+                    className="w-12 h-12 rounded-full flex-shrink-0" 
+                  />
+                  <div className="flex-1 min-w-0">
+                    <h3 className="text-white font-semibold text-lg truncate">{u.nickname}</h3>
+                    <span className={`inline-block px-2 py-1 rounded-full text-xs font-semibold mt-1 ${
+                      u.role === 'moderator' ? 'bg-purple-600 text-white' :
+                      u.role === 'helper' ? 'bg-yellow-600 text-white' :
+                      'bg-gray-600 text-white'
+                    }`}>
+                      {u.role === 'moderator' ? 'Moderador' :
+                       u.role === 'helper' ? 'Ajudante' : 'Usuário'}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4 mb-4 text-sm">
+                  <div>
+                    <span className="text-gray-300">Pontos:</span>
+                    <span className="text-white font-semibold ml-2">{u.points}</span>
+                  </div>
+                  <div>
+                    <span className="text-gray-300">Nível:</span>
+                    <span className="text-white font-semibold ml-2">{u.level}</span>
+                  </div>
+                  <div>
+                    <span className="text-gray-300">Tarefas:</span>
+                    <span className="text-white font-semibold ml-2">{u.tasksCompleted || 0}</span>
+                  </div>
+                  <div>
+                    <span className="text-gray-300">Criado:</span>
+                    <span className="text-white font-semibold ml-2 text-xs">{new Date(u.createdAt).toLocaleDateString('pt-BR')}</span>
+                  </div>
+                </div>
+
+                <div className="flex flex-wrap gap-2">
+                  {/* Visualizar: ajudante, moderador, admin */}
+                  {(user.role === 'admin' || user.role === 'moderator' || user.role === 'helper') && (
+                    <button onClick={() => handleViewUser(u)} className="px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-medium">
+                      👁️ Visualizar
+                    </button>
+                  )}
+                  {/* Eliminar: moderador, admin */}
+                  {(user.role === 'admin' || user.role === 'moderator') && (
+                    <button onClick={() => handleDeleteUser(u.id)} className="px-3 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg text-xs font-medium">
+                      🗑️ Eliminar
+                    </button>
+                  )}
+                  {/* Adicionar como ajudante: moderador, admin */}
+                  {(user.role === 'admin' || user.role === 'moderator') && u.role === 'user' && (
+                    <button onClick={() => handleMakeHelper(u.id)} className="px-3 py-2 bg-yellow-600 hover:bg-yellow-700 text-white rounded-lg text-xs font-medium">
+                      ⭐ Ajudante
+                    </button>
+                  )}
+                  {/* Adicionar como moderador: apenas admin */}
+                  {user.role === 'admin' && (u.role === 'user' || u.role === 'helper') && (
+                    <button onClick={() => handleMakeModerator(u.id)} className="px-3 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg text-xs font-medium">
+                      👑 Moderador
+                    </button>
+                  )}
+                  {/* Remover como ajudante: moderador, admin */}
+                  {(user.role === 'admin' || user.role === 'moderator') && u.role === 'helper' && (
+                    <button onClick={() => handleRemoveHelper(u.id)} className="px-3 py-2 bg-yellow-800 hover:bg-yellow-900 text-white rounded-lg text-xs font-medium">
+                      ⭐ Remover
+                    </button>
+                  )}
+                  {/* Rebaixar moderador: apenas admin */}
+                  {user.role === 'admin' && u.role === 'moderator' && (
+                    <button onClick={() => handleRemoveHelper(u.id)} className="px-3 py-2 bg-red-800 hover:bg-red-900 text-white rounded-lg text-xs font-medium">
+                      👑 Rebaixar
+                    </button>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Paginação */}
+          <div className="flex justify-center items-center gap-2 mt-6">
+            <button 
+              onClick={() => {
+                const newPage = usersPage - 1;
+                setUsersPage(newPage);
+                fetchUsers(newPage);
+              }} 
+              disabled={usersPage <= 1}
+              className="px-4 py-2 bg-white/10 hover:bg-white/20 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-lg transition-colors"
+            >
+              Anterior
+            </button>
+            <span className="text-white px-4 py-2">
+              Página {usersPage} de {usersTotalPages}
+            </span>
+            <button 
+              onClick={() => {
+                const newPage = usersPage + 1;
+                setUsersPage(newPage);
+                fetchUsers(newPage);
+              }} 
+              disabled={usersPage >= usersTotalPages}
+              className="px-4 py-2 bg-white/10 hover:bg-white/20 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-lg transition-colors"
+            >
+              Próxima
+            </button>
+          </div>
+        </>
+      )}
     </div>
   ) : null;
   const pedidosAjuda = (user?.role === 'admin' || user?.role === 'moderator') ? (
