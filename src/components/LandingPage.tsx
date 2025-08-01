@@ -1227,7 +1227,7 @@ export default function LandingPage() {
                   >
                     Fechar
                   </button>
-                  {(user.role === 'admin' || user.role === 'moderator') && (
+                  {['admin', 'moderator'].includes(user.role) && (
                     <button 
                       onClick={() => {
                         setShowUserModal(false);
@@ -1349,7 +1349,7 @@ export default function LandingPage() {
                   >
                     Fechar
                   </button>
-                  {(user.role === 'admin' || user.role === 'moderator') && (
+                  {['admin', 'moderator'].includes(user.role) && (
                     <button 
                       onClick={() => {
                         setShowUserModal(false);
