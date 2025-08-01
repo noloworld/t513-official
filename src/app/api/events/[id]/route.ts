@@ -7,9 +7,10 @@ const prisma = new PrismaClient();
 // PATCH - Editar evento (apenas descrição e data)
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  context: { params: Promise<{ id: string }> }
 ) {
   try {
+    const params = await context.params;
     const token = request.cookies.get('token')?.value;
     
     if (!token) {
@@ -103,9 +104,10 @@ export async function PATCH(
 // GET - Buscar evento específico
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  context: { params: Promise<{ id: string }> }
 ) {
   try {
+    const params = await context.params;
     const event = await prisma.event.findUnique({
       where: { id: params.id },
       include: {
