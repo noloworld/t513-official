@@ -95,6 +95,11 @@ export default function LandingPage() {
     }
   }, [user]);
 
+  // Debug: Monitor modal state changes
+  useEffect(() => {
+    console.log('Modal state changed - showUserModal:', showUserModal, 'selectedUser:', selectedUser);
+  }, [showUserModal, selectedUser]);
+
   useEffect(() => {
     if (taskStatus && taskStatus.nextAvailableAt) {
       function updateCountdown() {
@@ -256,8 +261,15 @@ export default function LandingPage() {
   };
 
   const handleViewUser = (user: any) => {
+    console.log('handleViewUser chamado com:', user);
+    console.log('Estado atual - selectedUser:', selectedUser);
+    console.log('Estado atual - showUserModal:', showUserModal);
+    
     setSelectedUser(user);
     setShowUserModal(true);
+    
+    console.log('Estados atualizados - selectedUser:', user);
+    console.log('Estados atualizados - showUserModal:', true);
   };
 
   const handleDeleteUser = async (id: string) => {
@@ -1127,6 +1139,110 @@ export default function LandingPage() {
         {showQuiz && <DailyTaskQuiz onClose={handleCloseQuiz} />}
         {showAddEvent && <AddEventModal onClose={() => setShowAddEvent(false)} onSuccess={handleEventSuccess} />}
         {showAddNews && <AddNewsModal onClose={() => setShowAddNews(false)} onSuccess={handleNewsSuccess} />}
+        
+        {/* Modal de Visualizar Usuário */}
+        {showUserModal && selectedUser && (
+          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+            <div className="bg-gradient-to-br from-indigo-900 to-purple-900 rounded-2xl max-w-md w-full shadow-2xl border border-white/20">
+              <div className="p-6">
+                {/* Header do Modal */}
+                <div className="flex items-center justify-between mb-6">
+                  <h2 className="text-xl font-bold text-white">👤 Detalhes do Usuário</h2>
+                  <button 
+                    onClick={() => setShowUserModal(false)}
+                    className="text-gray-400 hover:text-white transition-colors"
+                  >
+                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                </div>
+
+                {/* Conteúdo do Modal */}
+                <div className="space-y-4">
+                  {/* Avatar e Nome */}
+                  <div className="flex items-center gap-4 mb-6">
+                    <img 
+                      src={`https://www.habbo.com.br/habbo-imaging/avatarimage?user=${selectedUser.nickname}&action=std&direction=2&head_direction=2&gesture=std&size=l`} 
+                      alt={selectedUser.nickname} 
+                      className="w-16 h-16 rounded-full bg-white/10 p-1" 
+                    />
+                    <div>
+                      <h3 className="text-lg font-semibold text-white">{selectedUser.nickname}</h3>
+                      <span className={`inline-block px-3 py-1 rounded-full text-sm font-semibold ${
+                        selectedUser.role === 'moderator' ? 'bg-purple-600 text-white' :
+                        selectedUser.role === 'helper' ? 'bg-yellow-600 text-white' :
+                        'bg-gray-600 text-white'
+                      }`}>
+                        {selectedUser.role === 'moderator' ? 'Moderador' :
+                         selectedUser.role === 'helper' ? 'Ajudante' : 'Usuário'}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Informações Detalhadas */}
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="bg-white/5 rounded-lg p-3">
+                      <span className="text-gray-300 text-sm">Pontos</span>
+                      <div className="text-white font-bold text-lg">{selectedUser.points}</div>
+                    </div>
+                    <div className="bg-white/5 rounded-lg p-3">
+                      <span className="text-gray-300 text-sm">Nível</span>
+                      <div className="text-white font-bold text-lg">{selectedUser.level}</div>
+                    </div>
+                    <div className="bg-white/5 rounded-lg p-3">
+                      <span className="text-gray-300 text-sm">Tarefas</span>
+                      <div className="text-white font-bold text-lg">{selectedUser.tasksCompleted || 0}</div>
+                    </div>
+                    <div className="bg-white/5 rounded-lg p-3">
+                      <span className="text-gray-300 text-sm">ID</span>
+                      <div className="text-white font-mono text-xs truncate">{selectedUser.id}</div>
+                    </div>
+                  </div>
+
+                  {/* Email */}
+                  <div className="bg-white/5 rounded-lg p-3">
+                    <span className="text-gray-300 text-sm">Email</span>
+                    <div className="text-white font-medium truncate">{selectedUser.email}</div>
+                  </div>
+
+                  {/* Data de Criação */}
+                  <div className="bg-white/5 rounded-lg p-3">
+                    <span className="text-gray-300 text-sm">Membro desde</span>
+                    <div className="text-white font-medium">
+                      {new Date(selectedUser.createdAt).toLocaleDateString('pt-BR', {
+                        year: 'numeric',
+                        month: 'long',
+                        day: 'numeric'
+                      })}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Botões de Ação */}
+                <div className="mt-6 pt-4 border-t border-white/10 flex gap-2">
+                  <button 
+                    onClick={() => setShowUserModal(false)}
+                    className="flex-1 px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg transition-colors"
+                  >
+                    Fechar
+                  </button>
+                  {(user.role === 'admin' || user.role === 'moderator') && (
+                    <button 
+                      onClick={() => {
+                        setShowUserModal(false);
+                        handleDeleteUser(selectedUser.id);
+                      }}
+                      className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors"
+                    >
+                      🗑️ Eliminar
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     );
   }
@@ -1145,6 +1261,110 @@ export default function LandingPage() {
         {showQuiz && <DailyTaskQuiz onClose={handleCloseQuiz} />}
         {showAddEvent && <AddEventModal onClose={() => setShowAddEvent(false)} onSuccess={handleEventSuccess} />}
         {showAddNews && <AddNewsModal onClose={() => setShowAddNews(false)} onSuccess={handleNewsSuccess} />}
+        
+        {/* Modal de Visualizar Usuário */}
+        {showUserModal && selectedUser && (
+          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+            <div className="bg-gradient-to-br from-indigo-900 to-purple-900 rounded-2xl max-w-md w-full shadow-2xl border border-white/20">
+              <div className="p-6">
+                {/* Header do Modal */}
+                <div className="flex items-center justify-between mb-6">
+                  <h2 className="text-xl font-bold text-white">👤 Detalhes do Usuário</h2>
+                  <button 
+                    onClick={() => setShowUserModal(false)}
+                    className="text-gray-400 hover:text-white transition-colors"
+                  >
+                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                </div>
+
+                {/* Conteúdo do Modal */}
+                <div className="space-y-4">
+                  {/* Avatar e Nome */}
+                  <div className="flex items-center gap-4 mb-6">
+                    <img 
+                      src={`https://www.habbo.com.br/habbo-imaging/avatarimage?user=${selectedUser.nickname}&action=std&direction=2&head_direction=2&gesture=std&size=l`} 
+                      alt={selectedUser.nickname} 
+                      className="w-16 h-16 rounded-full bg-white/10 p-1" 
+                    />
+                    <div>
+                      <h3 className="text-lg font-semibold text-white">{selectedUser.nickname}</h3>
+                      <span className={`inline-block px-3 py-1 rounded-full text-sm font-semibold ${
+                        selectedUser.role === 'moderator' ? 'bg-purple-600 text-white' :
+                        selectedUser.role === 'helper' ? 'bg-yellow-600 text-white' :
+                        'bg-gray-600 text-white'
+                      }`}>
+                        {selectedUser.role === 'moderator' ? 'Moderador' :
+                         selectedUser.role === 'helper' ? 'Ajudante' : 'Usuário'}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Informações Detalhadas */}
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="bg-white/5 rounded-lg p-3">
+                      <span className="text-gray-300 text-sm">Pontos</span>
+                      <div className="text-white font-bold text-lg">{selectedUser.points}</div>
+                    </div>
+                    <div className="bg-white/5 rounded-lg p-3">
+                      <span className="text-gray-300 text-sm">Nível</span>
+                      <div className="text-white font-bold text-lg">{selectedUser.level}</div>
+                    </div>
+                    <div className="bg-white/5 rounded-lg p-3">
+                      <span className="text-gray-300 text-sm">Tarefas</span>
+                      <div className="text-white font-bold text-lg">{selectedUser.tasksCompleted || 0}</div>
+                    </div>
+                    <div className="bg-white/5 rounded-lg p-3">
+                      <span className="text-gray-300 text-sm">ID</span>
+                      <div className="text-white font-mono text-xs truncate">{selectedUser.id}</div>
+                    </div>
+                  </div>
+
+                  {/* Email */}
+                  <div className="bg-white/5 rounded-lg p-3">
+                    <span className="text-gray-300 text-sm">Email</span>
+                    <div className="text-white font-medium truncate">{selectedUser.email}</div>
+                  </div>
+
+                  {/* Data de Criação */}
+                  <div className="bg-white/5 rounded-lg p-3">
+                    <span className="text-gray-300 text-sm">Membro desde</span>
+                    <div className="text-white font-medium">
+                      {new Date(selectedUser.createdAt).toLocaleDateString('pt-BR', {
+                        year: 'numeric',
+                        month: 'long',
+                        day: 'numeric'
+                      })}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Botões de Ação */}
+                <div className="mt-6 pt-4 border-t border-white/10 flex gap-2">
+                  <button 
+                    onClick={() => setShowUserModal(false)}
+                    className="flex-1 px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg transition-colors"
+                  >
+                    Fechar
+                  </button>
+                  {(user.role === 'admin' || user.role === 'moderator') && (
+                    <button 
+                      onClick={() => {
+                        setShowUserModal(false);
+                        handleDeleteUser(selectedUser.id);
+                      }}
+                      className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors"
+                    >
+                      🗑️ Eliminar
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     );
   }
@@ -1163,6 +1383,99 @@ export default function LandingPage() {
         {showQuiz && <DailyTaskQuiz onClose={handleCloseQuiz} />}
         {showAddEvent && <AddEventModal onClose={() => setShowAddEvent(false)} onSuccess={handleEventSuccess} />}
         {showAddNews && <AddNewsModal onClose={() => setShowAddNews(false)} onSuccess={handleNewsSuccess} />}
+        
+        {/* Modal de Visualizar Usuário */}
+        {showUserModal && selectedUser && (
+          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+            <div className="bg-gradient-to-br from-indigo-900 to-purple-900 rounded-2xl max-w-md w-full shadow-2xl border border-white/20">
+              <div className="p-6">
+                {/* Header do Modal */}
+                <div className="flex items-center justify-between mb-6">
+                  <h2 className="text-xl font-bold text-white">👤 Detalhes do Usuário</h2>
+                  <button 
+                    onClick={() => setShowUserModal(false)}
+                    className="text-gray-400 hover:text-white transition-colors"
+                  >
+                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                </div>
+
+                {/* Conteúdo do Modal */}
+                <div className="space-y-4">
+                  {/* Avatar e Nome */}
+                  <div className="flex items-center gap-4 mb-6">
+                    <img 
+                      src={`https://www.habbo.com.br/habbo-imaging/avatarimage?user=${selectedUser.nickname}&action=std&direction=2&head_direction=2&gesture=std&size=l`} 
+                      alt={selectedUser.nickname} 
+                      className="w-16 h-16 rounded-full bg-white/10 p-1" 
+                    />
+                    <div>
+                      <h3 className="text-lg font-semibold text-white">{selectedUser.nickname}</h3>
+                      <span className={`inline-block px-3 py-1 rounded-full text-sm font-semibold ${
+                        selectedUser.role === 'moderator' ? 'bg-purple-600 text-white' :
+                        selectedUser.role === 'helper' ? 'bg-yellow-600 text-white' :
+                        'bg-gray-600 text-white'
+                      }`}>
+                        {selectedUser.role === 'moderator' ? 'Moderador' :
+                         selectedUser.role === 'helper' ? 'Ajudante' : 'Usuário'}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Informações Detalhadas */}
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="bg-white/5 rounded-lg p-3">
+                      <span className="text-gray-300 text-sm">Pontos</span>
+                      <div className="text-white font-bold text-lg">{selectedUser.points}</div>
+                    </div>
+                    <div className="bg-white/5 rounded-lg p-3">
+                      <span className="text-gray-300 text-sm">Nível</span>
+                      <div className="text-white font-bold text-lg">{selectedUser.level}</div>
+                    </div>
+                    <div className="bg-white/5 rounded-lg p-3">
+                      <span className="text-gray-300 text-sm">Tarefas</span>
+                      <div className="text-white font-bold text-lg">{selectedUser.tasksCompleted || 0}</div>
+                    </div>
+                    <div className="bg-white/5 rounded-lg p-3">
+                      <span className="text-gray-300 text-sm">ID</span>
+                      <div className="text-white font-mono text-xs truncate">{selectedUser.id}</div>
+                    </div>
+                  </div>
+
+                  {/* Email */}
+                  <div className="bg-white/5 rounded-lg p-3">
+                    <span className="text-gray-300 text-sm">Email</span>
+                    <div className="text-white font-medium truncate">{selectedUser.email}</div>
+                  </div>
+
+                  {/* Data de Criação */}
+                  <div className="bg-white/5 rounded-lg p-3">
+                    <span className="text-gray-300 text-sm">Membro desde</span>
+                    <div className="text-white font-medium">
+                      {new Date(selectedUser.createdAt).toLocaleDateString('pt-BR', {
+                        year: 'numeric',
+                        month: 'long',
+                        day: 'numeric'
+                      })}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Botões de Ação */}
+                <div className="mt-6 pt-4 border-t border-white/10 flex gap-2">
+                  <button 
+                    onClick={() => setShowUserModal(false)}
+                    className="flex-1 px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg transition-colors"
+                  >
+                    Fechar
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     );
   }
@@ -1248,4 +1561,4 @@ const latestNews = [
     description: "Desbloqueie emblemas especiais participando de eventos!",
     type: "Novidade"
   }
-]; 
+];
