@@ -756,7 +756,7 @@ export default function LandingPage() {
     </div>
   );
   const footer = (
-    <footer className="py-8 bg-black/20 mb-20 sm:mb-8">
+    <footer className="py-8 bg-black/20 pb-16 sm:pb-8">
       <div className="container mx-auto px-4">
         <div className="text-center text-gray-400">
           <p className="font-light">© 2025 T513 - Uma nova Era!</p>
