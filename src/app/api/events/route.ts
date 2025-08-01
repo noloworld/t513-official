@@ -3,14 +3,40 @@ import prisma from "@/lib/prisma";
 import jwt from "jsonwebtoken";
 
 // GET - Listar todos os eventos
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
+    const { searchParams } = new URL(request.url);
+    const filter = searchParams.get('filter'); // 'upcoming', 'all'
+    const limit = searchParams.get('limit');
+
+    let whereClause = {};
+    
+    // Filtrar apenas eventos futuros/ativos se solicitado
+    if (filter === 'upcoming') {
+      whereClause = {
+        OR: [
+          { status: 'Em Breve' },
+          { status: 'Ativo' },
+          { status: 'Programado' }
+        ]
+      };
+    }
+
     const events = await prisma.event.findMany({
+      where: whereClause,
       orderBy: { createdAt: 'desc' },
+      take: limit ? parseInt(limit) : undefined,
       include: {
         user: {
           select: {
             nickname: true
+          }
+        },
+        editor: {
+          select: {
+            id: true,
+            nickname: true,
+            role: true
           }
         }
       }
@@ -41,23 +67,31 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Acesso negado" }, { status: 403 });
     }
 
-    const { title, description, date, emoji, type, status } = await request.json();
+    const { title, description, date, time, brazilTime, emoji, type, status } = await request.json();
 
     // Validações
     if (!title || !date || !emoji || !type) {
       return NextResponse.json({ error: "Campos obrigatórios não preenchidos" }, { status: 400 });
     }
 
+    // Preparar dados com os novos campos de horário
+    const eventData = {
+      title,
+      description: description || "",
+      date,
+      time: time || null,
+      brazilTime: brazilTime || null,
+      emoji,
+      type,
+      status: status || "Em Breve",
+      createdBy: userId
+    };
+
+    // Log para debug
+    console.log('Criando evento com dados completos:', eventData);
+
     const event = await prisma.event.create({
-      data: {
-        title,
-        description,
-        date,
-        emoji,
-        type,
-        status: status || "Em Breve",
-        createdBy: userId
-      },
+      data: eventData,
       include: {
         user: {
           select: {

@@ -125,7 +125,7 @@ export default function Header() {
   };
 
   return (
-    <header className={`top-0 left-0 w-full z-50 sticky transition-all duration-300 ${scrolled ? 'backdrop-blur-md shadow-2xl bg-gradient-to-r from-[#1e2875]/90 to-[#4424a1]/90' : 'bg-gradient-to-r from-[#1e2875] to-[#4424a1]'} text-white`}>
+    <header className={`top-0 left-0 w-full z-50 fixed transition-all duration-300 ${scrolled ? 'backdrop-blur-md shadow-2xl bg-gradient-to-r from-[#1e2875]/90 to-[#4424a1]/90' : 'bg-gradient-to-r from-[#1e2875] to-[#4424a1]'} text-white`}>
       <div className="container mx-auto px-4">
         <div className="flex items-center justify-between h-16 transition-all duration-300">
           {/* Logo */}

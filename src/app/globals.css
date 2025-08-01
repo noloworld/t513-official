@@ -2,6 +2,27 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Utility for text truncation */
+.line-clamp-2 {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* Prevenir overflow horizontal */
+html, body {
+  overflow-x: hidden;
+}
+
+/* Melhorar responsividade mobile */
+@media (max-width: 640px) {
+  .container {
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+}
+
 @keyframes gradient {
   0% {
     background-position: 0% 50%;

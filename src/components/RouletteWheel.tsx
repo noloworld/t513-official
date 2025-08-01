@@ -328,15 +328,16 @@ export default function RouletteWheel({ user, last5KSpins = 418, onSpin }: { use
   }, []);
 
   return (
-    <div className="flex flex-col items-center justify-center w-full max-w-xl mx-auto py-8">
-      <h2 className="text-3xl md:text-4xl font-extrabold text-yellow-300 drop-shadow mb-6 text-center tracking-wide animate-pulse uppercase" style={{letterSpacing: '0.08em'}}>Roleta da Sorte</h2>
+    <div className="flex flex-col items-center justify-center w-full max-w-xl mx-auto py-8 px-4">
+      <h2 className="text-2xl md:text-4xl font-extrabold text-yellow-300 drop-shadow mb-6 text-center tracking-wide animate-pulse uppercase" style={{letterSpacing: '0.08em'}}>Roleta da Sorte</h2>
       
 
       
       {/* Áudios */}
       {/* <audio ref={audioRef} src="/tick.mp3" preload="auto" /> */}
       <audio ref={winAudioRef} src="/win.mp3" preload="auto" />
-      <div className="relative" style={{ width: size, height: size }}>
+      <div className="relative w-full max-w-sm sm:max-w-md md:max-w-lg" style={{ aspectRatio: '1/1' }}>
+        <div className="w-full h-full" style={{ maxWidth: size, maxHeight: size }}>
         {/* Ponteiro animado */}
         <div className="absolute left-1/2 top-0 z-20 -translate-x-1/2">
           <svg width="54" height="54" viewBox="0 0 54 54" style={{ transform: `rotate(${180 + pointerAngle}deg)`, transition: 'transform 0.12s cubic-bezier(.4,2,.6,1)' }}>
@@ -346,10 +347,10 @@ export default function RouletteWheel({ user, last5KSpins = 418, onSpin }: { use
         </div>
         {/* Roleta */}
         <svg
-          width={size}
-          height={size}
+          width="100%"
+          height="100%"
           viewBox={`0 0 ${size} ${size}`}
-          className="rounded-full shadow-2xl"
+          className="rounded-full shadow-2xl w-full h-full"
           style={{ transform: `rotate(${angle}deg)`, transition: spinning ? "none" : "transform 0.5s cubic-bezier(.17,.67,.83,.67)" }}
         >
           {prizes.map((prize, i) => {
@@ -388,13 +389,14 @@ export default function RouletteWheel({ user, last5KSpins = 418, onSpin }: { use
         </svg>
         {/* Botão GIRAR */}
         <button
-          className={`absolute left-1/2 top-1/2 z-10 -translate-x-1/2 -translate-y-1/2 px-8 py-4 rounded-full text-xl font-bold shadow-lg border-4 border-yellow-400 bg-gradient-to-br from-yellow-300 via-yellow-400 to-yellow-500 text-white transition-all duration-200 hover:scale-105 hover:brightness-110 focus:outline-none ${user ? "" : "opacity-60 pointer-events-none"}`}
+          className={`absolute left-1/2 top-1/2 z-10 -translate-x-1/2 -translate-y-1/2 px-4 sm:px-8 py-2 sm:py-4 rounded-full text-lg sm:text-xl font-bold shadow-lg border-4 border-yellow-400 bg-gradient-to-br from-yellow-300 via-yellow-400 to-yellow-500 text-white transition-all duration-200 hover:scale-105 hover:brightness-110 focus:outline-none ${user ? "" : "opacity-60 pointer-events-none"}`}
           style={{ boxShadow: '0 0 32px 4px #FFD70088, 0 2px 8px #0004' }}
           onClick={user ? handleSpinClick : undefined}
           disabled={spinning || !user}
         >
           GIRAR
         </button>
+        </div> {/* Fecha div com maxWidth/maxHeight */}
       </div>
       {/* Texto dinâmico */}
       <div className="mt-8 text-center">

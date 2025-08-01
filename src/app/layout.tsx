@@ -59,10 +59,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             {user && (
               <footer className="fixed bottom-4 right-4 z-50">
                 <button
-                  className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg font-semibold shadow"
+                  className="bg-green-500 hover:bg-green-600 text-white px-3 sm:px-4 py-2 rounded-lg font-semibold shadow text-sm sm:text-base"
                   onClick={() => setShowSuggestionModal(true)}
                 >
-                  Sugestão
+                  💡 Sugestão
                 </button>
               </footer>
             )}

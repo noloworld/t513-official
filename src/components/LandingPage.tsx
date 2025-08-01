@@ -11,6 +11,7 @@ import AddNewsModal from "./AddNewsModal";
 import { useState, useEffect, useRef } from "react";
 import Header from "./Header";
 import RouletteWheel from "@/components/RouletteWheel";
+import UpcomingEventsWidget from "./UpcomingEventsWidget";
 
 export default function LandingPage() {
   const { user, logout } = useAuth();
@@ -499,6 +500,15 @@ export default function LandingPage() {
       <DonationStatus />
     </div>
   );
+
+  const proximosEventos = user ? (
+    <div className="container mx-auto px-4 mt-6">
+      <UpcomingEventsWidget 
+        user={user} 
+        onAddEvent={() => setShowAddEvent(true)}
+      />
+    </div>
+  ) : null;
   const progresso = (
     <div className="container mx-auto px-4 mt-8">
       {/* Seu Progresso e Meus Emblemas */}
@@ -640,23 +650,15 @@ export default function LandingPage() {
     </div>
   );
   const eventos = (
-    <div className="container mx-auto px-4 mt-4">
+    <div className="container mx-auto px-4 mt-4" data-section="events">
       <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 mb-12">
         <h2 className="text-3xl font-bold text-white">
           Últimos Eventos
         </h2>
-        {(user?.role === 'admin' || user?.role === 'moderator') && (
-          <button 
-            onClick={() => setShowAddEvent(true)}
-            className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors flex items-center space-x-2"
-          >
-            <span>➕</span>
-            <span>Adicionar Evento</span>
-          </button>
-        )}
       </div>
       <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-        {events.length > 0 ? events.slice(0, 3).map((event) => (
+        {events.filter(event => event.status === 'Finalizado' || event.status === 'Encerrado').length > 0 ? 
+          events.filter(event => event.status === 'Finalizado' || event.status === 'Encerrado').slice(0, 3).map((event) => (
           <div
             key={event.id}
             className="bg-white/10 backdrop-blur-sm rounded-2xl p-6 hover:bg-white/15 transition-colors"
@@ -680,9 +682,9 @@ export default function LandingPage() {
           </div>
         )) : (
           <div className="md:col-span-3 text-center py-12">
-            <div className="text-6xl mb-4">🎮</div>
-            <h3 className="text-xl font-semibold text-white mb-2">Nenhum evento ainda</h3>
-            <p className="text-gray-400">Fique atento para novos eventos em breve!</p>
+            <div className="text-6xl mb-4">📜</div>
+            <h3 className="text-xl font-semibold text-white mb-2">Nenhum evento finalizado ainda</h3>
+            <p className="text-gray-400">Os eventos concluídos aparecerão aqui!</p>
           </div>
         )}
       </div>
@@ -754,7 +756,7 @@ export default function LandingPage() {
     </div>
   );
   const footer = (
-    <footer className="py-8 bg-black/20">
+    <footer className="py-8 bg-black/20 mb-20 sm:mb-8">
       <div className="container mx-auto px-4">
         <div className="text-center text-gray-400">
           <p className="font-light">© 2025 T513 - Uma nova Era!</p>
@@ -1128,7 +1130,9 @@ export default function LandingPage() {
     return (
       <div className="min-h-screen bg-gradient-to-br from-indigo-900 via-purple-900 to-purple-800 font-poppins">
         <Header />
+        <div className="pt-16"> {/* Padding para compensar header fixo */}
         {doacoes}
+        {proximosEventos}
         {pedidosResgate}
         {roleta}
         {listaUsuarios}
@@ -1136,6 +1140,7 @@ export default function LandingPage() {
         {eventos}
         {noticias}
         {footer}
+        </div> {/* Fecha div com padding-top */}
         {showQuiz && <DailyTaskQuiz onClose={handleCloseQuiz} />}
         {showAddEvent && <AddEventModal onClose={() => setShowAddEvent(false)} onSuccess={handleEventSuccess} />}
         {showAddNews && <AddNewsModal onClose={() => setShowAddNews(false)} onSuccess={handleNewsSuccess} />}
@@ -1250,7 +1255,9 @@ export default function LandingPage() {
     return (
       <div className="min-h-screen bg-gradient-to-br from-indigo-900 via-purple-900 to-purple-800 font-poppins">
         <Header />
+        <div className="pt-16"> {/* Padding para compensar header fixo */}
         {doacoes}
+        {proximosEventos}
         {progresso}
         {roleta}
         {listaUsuarios}
@@ -1258,6 +1265,7 @@ export default function LandingPage() {
         {eventos}
         {noticias}
         {footer}
+        </div> {/* Fecha div com padding-top */}
         {showQuiz && <DailyTaskQuiz onClose={handleCloseQuiz} />}
         {showAddEvent && <AddEventModal onClose={() => setShowAddEvent(false)} onSuccess={handleEventSuccess} />}
         {showAddNews && <AddNewsModal onClose={() => setShowAddNews(false)} onSuccess={handleNewsSuccess} />}
@@ -1372,7 +1380,9 @@ export default function LandingPage() {
     return (
       <div className="min-h-screen bg-gradient-to-br from-indigo-900 via-purple-900 to-purple-800 font-poppins">
         <Header />
+        <div className="pt-16"> {/* Padding para compensar header fixo */}
         {doacoes}
+        {proximosEventos}
         {progresso}
         {roleta}
         {pedidoAjuda}
@@ -1380,6 +1390,7 @@ export default function LandingPage() {
         {eventos}
         {noticias}
         {footer}
+        </div> {/* Fecha div com padding-top */}
         {showQuiz && <DailyTaskQuiz onClose={handleCloseQuiz} />}
         {showAddEvent && <AddEventModal onClose={() => setShowAddEvent(false)} onSuccess={handleEventSuccess} />}
         {showAddNews && <AddNewsModal onClose={() => setShowAddNews(false)} onSuccess={handleNewsSuccess} />}
@@ -1483,12 +1494,15 @@ export default function LandingPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-indigo-900 via-purple-900 to-purple-800 font-poppins">
       <Header />
+      <div className="pt-16"> {/* Padding para compensar header fixo */}
       {doacoes}
+      {proximosEventos}
       {progresso}
       {roleta}
       {eventos}
       {noticias}
       {footer}
+      </div> {/* Fecha div com padding-top */}
       {showQuiz && <DailyTaskQuiz onClose={handleCloseQuiz} />}
       {showAddEvent && <AddEventModal onClose={() => setShowAddEvent(false)} onSuccess={handleEventSuccess} />}
       {showAddNews && <AddNewsModal onClose={() => setShowAddNews(false)} onSuccess={handleNewsSuccess} />}

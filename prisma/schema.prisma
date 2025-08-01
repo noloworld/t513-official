@@ -24,6 +24,7 @@ model User {
   taskAttempts           TaskAttempt[]
   userBadges             UserBadge[]
   events                 Event[]
+  editedEvents           Event[] @relation("EventEditor")
   news                   News[]
   redemptionRequests     RedemptionRequest[]
   helpRequests           HelpRequest[]
@@ -136,13 +137,19 @@ model Event {
   title       String
   description String?
   date        String
+  time        String?
+  brazilTime  String?
   emoji       String
   type        String
   status      String   @default("Em Breve")
+  isRescheduled Boolean @default(false)
+  editedBy    String?
+  editedAt    DateTime?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
   createdBy   String
   user        User     @relation(fields: [createdBy], references: [id], onDelete: Cascade)
+  editor      User?    @relation("EventEditor", fields: [editedBy], references: [id])
 }
 
 model News {
