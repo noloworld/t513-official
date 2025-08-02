@@ -18,8 +18,11 @@ export function getDeviceInfo(request: NextRequest): DeviceInfo {
   const screenResolution = request.headers.get('sec-ch-viewport-width') || '';
   
   // Cria um fingerprint único baseado em várias características
+  // Obtém o IP real do cliente
+  const clientIP = getClientIP(request);
+  
   const fingerprint = Buffer.from(
-    userAgent + acceptLanguage + screenResolution + request.ip
+    userAgent + acceptLanguage + screenResolution + clientIP
   ).toString('base64');
 
   return {
@@ -32,10 +35,20 @@ export function getDeviceInfo(request: NextRequest): DeviceInfo {
 
 // Função para obter IP real do usuário
 export function getClientIP(request: NextRequest): string {
-  return request.ip || 
-         request.headers.get('x-real-ip') || 
-         request.headers.get('x-forwarded-for')?.split(',')[0] || 
-         'unknown';
+  const forwardedFor = request.headers.get('x-forwarded-for');
+  const realIP = request.headers.get('x-real-ip');
+  
+  if (forwardedFor) {
+    // Pega o primeiro IP da lista x-forwarded-for (IP original do cliente)
+    return forwardedFor.split(',')[0].trim();
+  }
+  
+  if (realIP) {
+    return realIP;
+  }
+  
+  // Se nenhum header de IP estiver disponível
+  return 'unknown';
 }
 
 // Função principal para detectar múltiplas contas
