@@ -1,0 +1,6 @@
+https://t513.org
+https://t513.org/sobre
+https://t513.org/auth/signin
+https://t513.org/auth/signup
+https://t513.org/dashboard
+https://t513.org/tasks

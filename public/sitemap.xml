@@ -35,4 +35,11 @@
     <priority>0.7</priority>
     <xhtml:link rel="alternate" hreflang="pt-br" href="https://t513.org/tasks" />
   </url>
+  <url>
+    <loc>https://t513.org/sobre</loc>
+    <lastmod>2025-01-08</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.9</priority>
+    <xhtml:link rel="alternate" hreflang="pt-br" href="https://t513.org/sobre" />
+  </url>
 </urlset>
