@@ -18,6 +18,10 @@ model User {
   isVerified             Boolean       @default(false)
   role                   String        @default("user")
   donationParticipations Int           @default(0)
+  lastIpAddress          String?
+  deviceInfo             String?
+  isActive              Boolean       @default(true)
+  bannedAt              DateTime?
   createdAt              DateTime      @default(now())
   updatedAt              DateTime      @updatedAt
   queueEntries           QueueEntry[]
@@ -29,6 +33,18 @@ model User {
   redemptionRequests     RedemptionRequest[]
   helpRequests           HelpRequest[]
   suggestions            Suggestion[]
+  bans                   UserBan[]
+}
+
+model UserBan {
+  id          String   @id @default(cuid())
+  userId      String
+  reason      String
+  ipAddress   String
+  deviceInfo  String
+  relatedBans String[]
+  createdAt   DateTime @default(now())
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model Task {

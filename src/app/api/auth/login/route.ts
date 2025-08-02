@@ -2,60 +2,80 @@ import { NextRequest, NextResponse } from 'next/server';
 import { PrismaClient } from '@prisma/client';
 import bcrypt from 'bcryptjs';
 import { createToken } from '@/lib/auth';
+import { getDeviceInfo, getClientIP, isUserBanned, detectMultipleAccounts } from '@/lib/security';
 
 const prisma = new PrismaClient();
 
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json();
-    console.log('Dados recebidos na rota de login:', body);
+    const { nickname, password } = await request.json();
 
-    const { nickname, password } = body;
-
+    // Validações básicas
     if (!nickname || !password) {
-      console.log('Campos obrigatórios faltando:', { nickname: !!nickname, password: !!password });
       return NextResponse.json(
         { error: 'Nickname e senha são obrigatórios' },
         { status: 400 }
       );
     }
 
-    // Busca o usuário pelo nickname
-    console.log('Buscando usuário com nickname:', nickname);
+    // Busca o usuário
     const user = await prisma.user.findUnique({
       where: { nickname }
     });
 
     if (!user) {
-      console.log('Usuário não encontrado');
       return NextResponse.json(
-        { error: 'Nickname ou senha incorretos' },
-        { status: 401 }
+        { error: 'Usuário não encontrado' },
+        { status: 404 }
       );
     }
 
-    // Verifica se a senha está correta
-    console.log('Verificando senha...');
+    // Verifica se a conta está banida
+    const isBanned = await isUserBanned(user.id);
+    if (isBanned) {
+      return NextResponse.json(
+        { error: 'Esta conta está banida por violação dos termos de uso.' },
+        { status: 403 }
+      );
+    }
+
+    // Verifica a senha
     const isValidPassword = await bcrypt.compare(password, user.password);
-
     if (!isValidPassword) {
-      console.log('Senha incorreta');
       return NextResponse.json(
-        { error: 'Nickname ou senha incorretos' },
+        { error: 'Senha incorreta' },
         { status: 401 }
       );
     }
 
-    if (!user.isVerified) {
-      console.log('Conta não verificada');
+    // Coleta informações de segurança
+    const ipAddress = getClientIP(request);
+    const deviceInfo = getDeviceInfo(request);
+
+    // Atualiza informações do dispositivo
+    await prisma.user.update({
+      where: { id: user.id },
+      data: {
+        lastIpAddress: ipAddress,
+        deviceInfo: deviceInfo.fingerprint
+      }
+    });
+
+    // Verifica múltiplas contas
+    const hasMultipleAccounts = await detectMultipleAccounts(
+      user.id,
+      ipAddress,
+      deviceInfo
+    );
+
+    if (hasMultipleAccounts) {
       return NextResponse.json(
-        { error: 'Conta não verificada. Por favor, verifique sua conta primeiro.' },
+        { error: 'Múltiplas contas detectadas. Todas as contas foram banidas.' },
         { status: 403 }
       );
     }
 
     // Gera o token JWT
-    console.log('Gerando token JWT...');
     const token = await createToken({
       id: user.id,
       nickname: user.nickname,
@@ -63,11 +83,10 @@ export async function POST(request: NextRequest) {
       level: user.level,
       points: user.points,
       isVerified: user.isVerified,
-      role: (user.role || 'user') as 'admin' | 'user' | 'helper' | 'moderator'
+      role: user.role as "user" | "helper" | "moderator" | "admin"
     });
 
-    // Cria a resposta
-    console.log('Criando resposta...');
+    // Configura o cookie
     const response = NextResponse.json({
       message: 'Login realizado com sucesso',
       user: {
@@ -76,30 +95,25 @@ export async function POST(request: NextRequest) {
         email: user.email,
         level: user.level,
         points: user.points,
-        role: (user.role || 'user') as 'admin' | 'user' | 'helper' | 'moderator'
+        isVerified: user.isVerified,
+        role: user.role
       }
     });
 
-    // Define o cookie com o token JWT
-    console.log('Definindo cookie...');
-    response.cookies.set({
-      name: 'auth_token',
-      value: token,
+    response.cookies.set('token', token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
-      path: '/',
+      sameSite: 'strict',
       maxAge: 60 * 60 * 24 // 24 horas
     });
 
-    console.log('Login concluído com sucesso');
     return response;
 
   } catch (error) {
-    console.error('Erro detalhado ao fazer login:', error);
+    console.error('Erro ao fazer login:', error);
     return NextResponse.json(
       { error: 'Erro ao fazer login' },
       { status: 500 }
     );
   }
-} 
+}

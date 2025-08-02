@@ -3,6 +3,7 @@ import { PrismaClient } from '@prisma/client';
 import bcrypt from 'bcryptjs';
 import { generateVerificationCode, isValidEmail, isValidNickname, isValidPassword } from '@/lib/auth';
 import { BADGES } from '@/lib/badges';
+import { getDeviceInfo, getClientIP, detectMultipleAccounts } from '@/lib/security';
 
 const prisma = new PrismaClient();
 
@@ -88,6 +89,10 @@ export async function POST(request: NextRequest) {
     // Gera o código de verificação
     const verificationCode = generateVerificationCode();
 
+    // Coleta informações de segurança
+    const ipAddress = getClientIP(request);
+    const deviceInfo = getDeviceInfo(request);
+
     // Cria o usuário
     const user = await prisma.user.create({
       data: {
@@ -97,9 +102,26 @@ export async function POST(request: NextRequest) {
         verificationCode,
         level: 1,
         points: 0,
-        isVerified: false
+        isVerified: false,
+        lastIpAddress: ipAddress,
+        deviceInfo: deviceInfo.fingerprint,
+        isActive: true
       }
     });
+
+    // Verifica múltiplas contas
+    const hasMultipleAccounts = await detectMultipleAccounts(
+      user.id,
+      ipAddress,
+      deviceInfo
+    );
+
+    if (hasMultipleAccounts) {
+      return NextResponse.json(
+        { error: 'Múltiplas contas detectadas. Todas as contas foram banidas.' },
+        { status: 403 }
+      );
+    }
 
     // Criar emblema de "Bem-vindo" automaticamente
     const welcomeBadge = BADGES.find(badge => badge.id === 'welcome');
