@@ -7,6 +7,12 @@ import { TaskProvider } from "@/contexts/TaskContext";
 import { DonationProvider } from "@/contexts/DonationContext";
 import { useAuth } from "@/hooks/useAuth";
 import { useState, useEffect } from "react";
+import dynamic from 'next/dynamic';
+
+// Carrega o RadioPlayer dinamicamente para evitar problemas de SSR com Audio API
+const RadioPlayer = dynamic(() => import('@/components/RadioPlayer'), {
+  ssr: false
+});
 
 const inter = Inter({
   subsets: ["latin"],
@@ -272,6 +278,13 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <DonationProvider>
           <TaskProvider>
             {children}
+            {/* Player da Rádio */}
+            {user && (
+              <RadioPlayer 
+                streamUrl="https://stream.zeno.fm/t513radio"
+                defaultVolume={0.3}
+              />
+            )}
             {/* Rodapé fixo com botão Ajuda */}
             {user && (
               <footer className="fixed bottom-4 right-4 z-50">
