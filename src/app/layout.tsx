@@ -281,7 +281,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             {/* Player da Rádio */}
             {user && (
               <RadioPlayer 
-                streamUrl="https://stream.zeno.fm/t513radio"
+                mixlrUsername="t513radio"
                 defaultVolume={0.3}
               />
             )}

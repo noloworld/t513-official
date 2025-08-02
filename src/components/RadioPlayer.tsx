@@ -1,11 +1,13 @@
 import { useState, useEffect, useRef } from 'react';
 
 interface RadioPlayerProps {
-  streamUrl: string;
+  mixlrUsername: string;
   defaultVolume?: number;
 }
 
-export default function RadioPlayer({ streamUrl, defaultVolume = 0.5 }: RadioPlayerProps) {
+export default function RadioPlayer({ mixlrUsername, defaultVolume = 0.5 }: RadioPlayerProps) {
+  // URL do stream será construída com base no username do Mixlr
+  const streamUrl = `https://api.mixlr.com/users/${mixlrUsername}/embed`;
   const [isPlaying, setIsPlaying] = useState(false);
   const [volume, setVolume] = useState(defaultVolume);
   const [isLoading, setIsLoading] = useState(false);
