@@ -37,9 +37,33 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     // Meta Keywords
     const metaKeywords = document.querySelector('meta[name="keywords"]') || document.createElement('meta');
     metaKeywords.setAttribute('name', 'keywords');
-    metaKeywords.setAttribute('content', 't513, habbo, habbo hotel, comunidade habbo, eventos habbo, doações habbo, roleta habbo, prêmios habbo, T513 habbo, habbo brasil, habbo português');
+    metaKeywords.setAttribute('content', 't513, t513.org, habbo, habbo hotel, comunidade habbo, eventos habbo, doações habbo, roleta habbo, prêmios habbo, T513 habbo, habbo brasil, habbo português, sistema de níveis, emblemas habbo, tarefas diárias habbo');
     if (!document.querySelector('meta[name="keywords"]')) {
       document.head.appendChild(metaKeywords);
+    }
+
+    // Canonical URL
+    const canonicalLink = document.querySelector('link[rel="canonical"]') || document.createElement('link');
+    canonicalLink.setAttribute('rel', 'canonical');
+    canonicalLink.setAttribute('href', 'https://t513.org');
+    if (!document.querySelector('link[rel="canonical"]')) {
+      document.head.appendChild(canonicalLink);
+    }
+
+    // Language
+    const metaLanguage = document.querySelector('meta[http-equiv="content-language"]') || document.createElement('meta');
+    metaLanguage.setAttribute('http-equiv', 'content-language');
+    metaLanguage.setAttribute('content', 'pt-BR');
+    if (!document.querySelector('meta[http-equiv="content-language"]')) {
+      document.head.appendChild(metaLanguage);
+    }
+
+    // Theme Color
+    const metaThemeColor = document.querySelector('meta[name="theme-color"]') || document.createElement('meta');
+    metaThemeColor.setAttribute('name', 'theme-color');
+    metaThemeColor.setAttribute('content', '#4424a1');
+    if (!document.querySelector('meta[name="theme-color"]')) {
+      document.head.appendChild(metaThemeColor);
     }
 
     // Open Graph Tags para redes sociais
@@ -66,17 +90,54 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 
     const ogImage = document.querySelector('meta[property="og:image"]') || document.createElement('meta');
     ogImage.setAttribute('property', 'og:image');
-    ogImage.setAttribute('content', '/imagens/logo-oficial.png');
+    ogImage.setAttribute('content', 'https://t513.org/imagens/logo-oficial.png');
     if (!document.querySelector('meta[property="og:image"]')) {
       document.head.appendChild(ogImage);
     }
 
-    // Twitter Card
+    // Open Graph URL
+    const ogUrl = document.querySelector('meta[property="og:url"]') || document.createElement('meta');
+    ogUrl.setAttribute('property', 'og:url');
+    ogUrl.setAttribute('content', 'https://t513.org');
+    if (!document.querySelector('meta[property="og:url"]')) {
+      document.head.appendChild(ogUrl);
+    }
+
+    // Open Graph Site Name
+    const ogSiteName = document.querySelector('meta[property="og:site_name"]') || document.createElement('meta');
+    ogSiteName.setAttribute('property', 'og:site_name');
+    ogSiteName.setAttribute('content', 'T513.org - Comunidade Habbo');
+    if (!document.querySelector('meta[property="og:site_name"]')) {
+      document.head.appendChild(ogSiteName);
+    }
+
+    // Twitter Cards
     const twitterCard = document.querySelector('meta[name="twitter:card"]') || document.createElement('meta');
     twitterCard.setAttribute('name', 'twitter:card');
     twitterCard.setAttribute('content', 'summary_large_image');
     if (!document.querySelector('meta[name="twitter:card"]')) {
       document.head.appendChild(twitterCard);
+    }
+
+    const twitterTitle = document.querySelector('meta[name="twitter:title"]') || document.createElement('meta');
+    twitterTitle.setAttribute('name', 'twitter:title');
+    twitterTitle.setAttribute('content', 'T513.org - Comunidade Habbo | Eventos e Diversão');
+    if (!document.querySelector('meta[name="twitter:title"]')) {
+      document.head.appendChild(twitterTitle);
+    }
+
+    const twitterDescription = document.querySelector('meta[name="twitter:description"]') || document.createElement('meta');
+    twitterDescription.setAttribute('name', 'twitter:description');
+    twitterDescription.setAttribute('content', 'Participe da melhor comunidade Habbo! Eventos exclusivos, sistema de níveis, doações e muito mais!');
+    if (!document.querySelector('meta[name="twitter:description"]')) {
+      document.head.appendChild(twitterDescription);
+    }
+
+    const twitterImage = document.querySelector('meta[name="twitter:image"]') || document.createElement('meta');
+    twitterImage.setAttribute('name', 'twitter:image');
+    twitterImage.setAttribute('content', 'https://t513.org/imagens/logo-oficial.png');
+    if (!document.querySelector('meta[name="twitter:image"]')) {
+      document.head.appendChild(twitterImage);
     }
 
     // Meta robots
@@ -103,19 +164,64 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       document.head.appendChild(metaViewport);
     }
 
+    // PWA Manifest
+    if (!document.querySelector('link[rel="manifest"]')) {
+      const manifestLink = document.createElement('link');
+      manifestLink.setAttribute('rel', 'manifest');
+      manifestLink.setAttribute('href', '/manifest.json');
+      document.head.appendChild(manifestLink);
+    }
+
+    // Apple Touch Icon
+    if (!document.querySelector('link[rel="apple-touch-icon"]')) {
+      const appleIcon = document.createElement('link');
+      appleIcon.setAttribute('rel', 'apple-touch-icon');
+      appleIcon.setAttribute('href', '/imagens/logo-oficial.png');
+      document.head.appendChild(appleIcon);
+    }
+
+    // Favicon
+    if (!document.querySelector('link[rel="icon"]')) {
+      const favicon = document.createElement('link');
+      favicon.setAttribute('rel', 'icon');
+      favicon.setAttribute('type', 'image/png');
+      favicon.setAttribute('href', '/imagens/logo-oficial.png');
+      document.head.appendChild(favicon);
+    }
+
     // JSON-LD para dados estruturados
     const jsonLd = {
       "@context": "https://schema.org",
       "@type": "WebSite",
-      "name": "T513 - Comunidade Habbo",
-      "description": "A melhor comunidade Habbo! Participe de eventos exclusivos, doações, roleta da sorte e ganhe prêmios incríveis.",
-      "url": "https://t513-official.vercel.app",
-      "logo": "https://t513-official.vercel.app/imagens/logo-oficial.png",
+      "name": "T513.org - Comunidade Habbo",
+      "alternateName": "T513 Habbo Community",
+      "description": "A melhor comunidade Habbo! Participe de eventos exclusivos, doações, roleta da sorte e ganhe prêmios incríveis. Sistema de níveis, emblemas e muito mais!",
+      "url": "https://t513.org",
+      "logo": "https://t513.org/imagens/logo-oficial.png",
+      "image": "https://t513.org/imagens/logo-oficial.png",
       "sameAs": [],
+      "keywords": "t513, habbo, habbo hotel, comunidade habbo, eventos habbo, doações habbo, roleta habbo, prêmios habbo, habbo brasil",
+      "inLanguage": "pt-BR",
+      "author": {
+        "@type": "Organization",
+        "name": "T513 Community",
+        "url": "https://t513.org"
+      },
       "potentialAction": {
         "@type": "SearchAction",
-        "target": "https://t513-official.vercel.app/search?q={search_term_string}",
+        "target": "https://t513.org/search?q={search_term_string}",
         "query-input": "required name=search_term_string"
+      },
+      "mainEntity": {
+        "@type": "WebApplication",
+        "name": "T513 Habbo Community Platform",
+        "applicationCategory": "GameApplication",
+        "operatingSystem": "Web Browser",
+        "offers": {
+          "@type": "Offer",
+          "price": "0",
+          "priceCurrency": "BRL"
+        }
       }
     };
 

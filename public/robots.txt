@@ -2,10 +2,22 @@ User-agent: *
 Allow: /
 
 # Sitemap
-Sitemap: https://t513-official.vercel.app/sitemap.xml
+Sitemap: https://t513.org/sitemap.xml
 
 # Disallow admin areas
 Disallow: /api/
 Disallow: /admin/
 Disallow: /_next/
 Disallow: /dashboard/admin
+
+# Allow important pages
+Allow: /auth/signin
+Allow: /auth/signup
+Allow: /dashboard
+Allow: /tasks
+
+# Crawl-delay for respectful crawling
+Crawl-delay: 1
+
+# Host (preferred domain)
+Host: https://t513.org
