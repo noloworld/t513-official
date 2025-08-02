@@ -8,11 +8,11 @@ import { useState, useEffect, useRef } from "react";
 export default function Header() {
   const { user, logout, loading } = useAuth();
   const [showRedeem, setShowRedeem] = useState(false);
-  const [showHelpModal, setShowHelpModal] = useState(false);
-  const [helpSubject, setHelpSubject] = useState("");
-  const [helpDescription, setHelpDescription] = useState("");
-  const [helpLoading, setHelpLoading] = useState(false);
-  const [helpMessage, setHelpMessage] = useState<string|null>(null);
+  const [showSuggestionModal, setShowSuggestionModal] = useState(false);
+  const [suggestionSubject, setSuggestionSubject] = useState("");
+  const [suggestionDescription, setSuggestionDescription] = useState("");
+  const [suggestionLoading, setSuggestionLoading] = useState(false);
+  const [suggestionMessage, setSuggestionMessage] = useState<string|null>(null);
   
   // Estados para animações de pontos
   const [pointsAnimation, setPointsAnimation] = useState<'none' | 'deduct' | 'add'>('none');
@@ -96,31 +96,31 @@ export default function Header() {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  const handleSendHelp = async () => {
-    setHelpLoading(true);
-    setHelpMessage(null);
+  const handleSendSuggestion = async () => {
+    setSuggestionLoading(true);
+    setSuggestionMessage(null);
     try {
-      const res = await fetch('/api/help', {
+      const res = await fetch('/api/suggestion', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ subject: helpSubject, description: helpDescription })
+        body: JSON.stringify({ subject: suggestionSubject, description: suggestionDescription })
       });
       if (res.ok) {
-        setHelpMessage('Pedido de ajuda enviado com sucesso!');
-        setHelpSubject("");
-        setHelpDescription("");
+        setSuggestionMessage('Sugestão enviada com sucesso!');
+        setSuggestionSubject("");
+        setSuggestionDescription("");
         setTimeout(() => {
-          setShowHelpModal(false);
-          setHelpMessage(null);
+          setShowSuggestionModal(false);
+          setSuggestionMessage(null);
         }, 1200);
       } else {
         const data = await res.json();
-        setHelpMessage(data.error || 'Erro ao enviar pedido de ajuda.');
+        setSuggestionMessage(data.error || 'Erro ao enviar sugestão.');
       }
     } catch (e) {
-      setHelpMessage('Erro ao enviar pedido de ajuda.');
+      setSuggestionMessage('Erro ao enviar sugestão.');
     } finally {
-      setHelpLoading(false);
+      setSuggestionLoading(false);
     }
   };
 
@@ -207,10 +207,10 @@ export default function Header() {
                 )}
                 {user && (
                   <button
-                    className="bg-yellow-500 hover:bg-yellow-600 text-white px-4 py-2 rounded-lg font-semibold shadow"
-                    onClick={() => setShowHelpModal(true)}
+                    className="bg-green-500 hover:bg-green-600 text-white px-3 sm:px-4 py-2 rounded-lg font-semibold shadow text-sm sm:text-base"
+                    onClick={() => setShowSuggestionModal(true)}
                   >
-                    Ajuda
+                    💡 Sugestão
                   </button>
                 )}
               </>
@@ -233,11 +233,11 @@ export default function Header() {
           </div>
         </div>
       </div>
-      {/* Modal de Ajuda */}
-      {showHelpModal && (
+      {/* Modal de Sugestão */}
+      {showSuggestionModal && (
         <div 
           className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
-          onClick={() => setShowHelpModal(false)}
+          onClick={() => setShowSuggestionModal(false)}
         >
           <div 
             className="bg-white rounded-xl p-8 w-full max-w-md shadow-lg relative"
@@ -245,38 +245,38 @@ export default function Header() {
           >
             <button
               className="absolute top-2 right-2 text-gray-500 hover:text-gray-700"
-              onClick={() => setShowHelpModal(false)}
+              onClick={() => setShowSuggestionModal(false)}
             >
               ×
             </button>
-            <h2 className="text-2xl font-bold mb-4 text-purple-800">Pedido de Ajuda</h2>
+            <h2 className="text-2xl font-bold mb-4 text-green-800">Enviar Sugestão</h2>
             <label className="block mb-2 font-semibold text-gray-700">Assunto</label>
             <input
               type="text"
               className="w-full border border-gray-300 rounded-lg px-3 py-2 mb-4"
-              value={helpSubject}
-              onChange={e => setHelpSubject(e.target.value)}
+              value={suggestionSubject}
+              onChange={e => setSuggestionSubject(e.target.value)}
               placeholder="Digite o assunto"
-              disabled={helpLoading}
+              disabled={suggestionLoading}
             />
             <label className="block mb-2 font-semibold text-gray-700">Descrição</label>
             <textarea
               className="w-full border border-gray-300 rounded-lg px-3 py-2 mb-4"
-              value={helpDescription}
-              onChange={e => setHelpDescription(e.target.value)}
-              placeholder="Descreva seu pedido de ajuda"
+              value={suggestionDescription}
+              onChange={e => setSuggestionDescription(e.target.value)}
+              placeholder="Descreva sua sugestão"
               rows={4}
-              disabled={helpLoading}
+              disabled={suggestionLoading}
             />
-            {helpMessage && (
-              <div className={`mb-2 text-center ${helpMessage.includes('sucesso') ? 'text-green-600' : 'text-red-600'}`}>{helpMessage}</div>
+            {suggestionMessage && (
+              <div className={`mb-2 text-center ${suggestionMessage.includes('sucesso') ? 'text-green-600' : 'text-red-600'}`}>{suggestionMessage}</div>
             )}
             <button
-              className="w-full bg-purple-600 hover:bg-purple-700 text-white font-semibold py-2 rounded-lg mt-2 disabled:opacity-60"
-              onClick={handleSendHelp}
-              disabled={!helpSubject || !helpDescription || helpLoading}
+              className="w-full bg-green-600 hover:bg-green-700 text-white font-semibold py-2 rounded-lg mt-2 disabled:opacity-60"
+              onClick={handleSendSuggestion}
+              disabled={!suggestionSubject || !suggestionDescription || suggestionLoading}
             >
-              {helpLoading ? 'Enviando...' : 'Enviar'}
+              {suggestionLoading ? 'Enviando...' : 'Enviar'}
             </button>
           </div>
         </div>
