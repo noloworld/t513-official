@@ -9,8 +9,12 @@ import { useAuth } from "@/hooks/useAuth";
 import { useState, useEffect } from "react";
 import dynamic from 'next/dynamic';
 
-// Carrega o RadioPlayer dinamicamente para evitar problemas de SSR com Audio API
+// Carrega os componentes de áudio dinamicamente para evitar problemas de SSR
 const RadioPlayer = dynamic(() => import('@/components/RadioPlayer'), {
+  ssr: false
+});
+
+const RadioBroadcast = dynamic(() => import('@/components/RadioBroadcast'), {
   ssr: false
 });
 
@@ -280,10 +284,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             {children}
             {/* Player da Rádio */}
             {user && (
-              <RadioPlayer 
-                mixlrUsername="t513radio"
-                defaultVolume={0.3}
-              />
+              <>
+                <RadioPlayer defaultVolume={0.3} />
+                <RadioBroadcast />
+              </>
             )}
             {/* Rodapé fixo com botão Ajuda */}
             {user && (

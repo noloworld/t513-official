@@ -1,61 +1,101 @@
 import { useState, useEffect, useRef } from 'react';
 
 interface RadioPlayerProps {
-  mixlrUsername: string;
   defaultVolume?: number;
 }
 
-export default function RadioPlayer({ mixlrUsername, defaultVolume = 0.5 }: RadioPlayerProps) {
-  // URL do stream será construída com base no username do Mixlr
-  const streamUrl = `https://api.mixlr.com/users/${mixlrUsername}/embed`;
+export default function RadioPlayer({ defaultVolume = 0.5 }: RadioPlayerProps) {
   const [isPlaying, setIsPlaying] = useState(false);
   const [volume, setVolume] = useState(defaultVolume);
   const [isLoading, setIsLoading] = useState(false);
-  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const audioContextRef = useRef<AudioContext | null>(null);
+  const sourceNodeRef = useRef<AudioBufferSourceNode | null>(null);
+  const gainNodeRef = useRef<GainNode | null>(null);
+  const eventSourceRef = useRef<EventSource | null>(null);
 
-  useEffect(() => {
-    // Cria elemento de áudio
-    audioRef.current = new Audio(streamUrl);
-    audioRef.current.volume = volume;
+  const setupAudioContext = () => {
+    if (!audioContextRef.current) {
+      audioContextRef.current = new AudioContext();
+      gainNodeRef.current = audioContextRef.current.createGain();
+      gainNodeRef.current.gain.value = volume;
+      gainNodeRef.current.connect(audioContextRef.current.destination);
+    }
+  };
 
-    // Cleanup
-    return () => {
-      if (audioRef.current) {
-        audioRef.current.pause();
-        audioRef.current = null;
-      }
-    };
-  }, [streamUrl]);
-
-  const togglePlay = async () => {
-    if (!audioRef.current) return;
-
+  const startPlaying = async () => {
     try {
       setIsLoading(true);
+      setupAudioContext();
+
+      // Conecta ao stream de áudio via SSE
+      eventSourceRef.current = new EventSource('/api/radio/stream');
       
-      if (isPlaying) {
-        audioRef.current.pause();
-      } else {
-        // Alguns navegadores bloqueiam autoplay, então usamos play() com catch
-        await audioRef.current.play();
-      }
-      
-      setIsPlaying(!isPlaying);
+      eventSourceRef.current.onmessage = async (event) => {
+        if (!audioContextRef.current) return;
+
+        // Converte o chunk de base64 para AudioBuffer
+        const base64Audio = event.data;
+        const response = await fetch(base64Audio);
+        const arrayBuffer = await response.arrayBuffer();
+        const audioBuffer = await audioContextRef.current.decodeAudioData(arrayBuffer);
+
+        // Cria e conecta source node
+        sourceNodeRef.current = audioContextRef.current.createBufferSource();
+        sourceNodeRef.current.buffer = audioBuffer;
+        sourceNodeRef.current.connect(gainNodeRef.current!);
+        sourceNodeRef.current.start();
+      };
+
+      eventSourceRef.current.onerror = () => {
+        stopPlaying();
+        console.error('Erro na conexão com o stream');
+      };
+
+      setIsPlaying(true);
+
     } catch (error) {
-      console.error('Erro ao reproduzir áudio:', error);
-      alert('Erro ao reproduzir. Verifique se seu navegador permite reprodução de áudio.');
+      console.error('Erro ao iniciar reprodução:', error);
+      alert('Erro ao reproduzir áudio. Verifique as permissões do navegador.');
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const stopPlaying = () => {
+    if (eventSourceRef.current) {
+      eventSourceRef.current.close();
+    }
+    if (sourceNodeRef.current) {
+      sourceNodeRef.current.stop();
+      sourceNodeRef.current.disconnect();
+    }
+    setIsPlaying(false);
+  };
+
+  const togglePlay = () => {
+    if (isPlaying) {
+      stopPlaying();
+    } else {
+      startPlaying();
     }
   };
 
   const handleVolumeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newVolume = parseFloat(e.target.value);
     setVolume(newVolume);
-    if (audioRef.current) {
-      audioRef.current.volume = newVolume;
+    if (gainNodeRef.current) {
+      gainNodeRef.current.gain.value = newVolume;
     }
   };
+
+  useEffect(() => {
+    return () => {
+      stopPlaying();
+      if (audioContextRef.current) {
+        audioContextRef.current.close();
+      }
+    };
+  }, []);
 
   return (
     <div className="fixed bottom-20 right-4 z-50 bg-black/80 backdrop-blur-sm rounded-lg p-4 shadow-xl border border-white/10">
