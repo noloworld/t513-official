@@ -1,36 +1,20 @@
-'use client';
-
-import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { useAuth } from '@/hooks/useAuth';
+import React, { createContext, useContext, useState } from 'react';
 
 interface RadioContextType {
   isReady: boolean;
+  setIsReady: (ready: boolean) => void;
   hasPermission: boolean;
+  setHasPermission: (hasPermission: boolean) => void;
 }
 
 const RadioContext = createContext<RadioContextType | undefined>(undefined);
 
-export function RadioProvider({ children }: { children: ReactNode }) {
-  const { user } = useAuth();
+export function RadioProvider({ children }: { children: React.ReactNode }) {
   const [isReady, setIsReady] = useState(false);
   const [hasPermission, setHasPermission] = useState(false);
 
-  useEffect(() => {
-    // Aguarda o componente montar
-    setIsReady(true);
-
-    // Verifica permissões quando o usuário mudar
-    if (user && user.role && ['admin', 'moderator'].includes(user.role)) {
-      console.log('Usuário tem permissão para rádio:', user);
-      setHasPermission(true);
-    } else {
-      console.log('Usuário não tem permissão para rádio:', user);
-      setHasPermission(false);
-    }
-  }, [user]);
-
   return (
-    <RadioContext.Provider value={{ isReady, hasPermission }}>
+    <RadioContext.Provider value={{ isReady, setIsReady, hasPermission, setHasPermission }}>
       {children}
     </RadioContext.Provider>
   );

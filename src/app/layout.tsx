@@ -5,18 +5,13 @@ import { Inter } from "next/font/google";
 import "./globals.css";
 import { TaskProvider } from "@/contexts/TaskContext";
 import { DonationProvider } from "@/contexts/DonationContext";
-import { RadioProvider } from "@/contexts/RadioContext";
 import { useAuth } from "@/hooks/useAuth";
 import { useState } from "react";
 import dynamic from 'next/dynamic';
 import SEOHead from '@/components/SEOHead';
 
-// Carrega os componentes de áudio dinamicamente para evitar problemas de SSR
-const RadioPlayer = dynamic(() => import('@/components/RadioPlayer'), {
-  ssr: false
-});
-
-const RadioBroadcast = dynamic(() => import('@/components/RadioBroadcast'), {
+// Carrega o componente de rádio dinamicamente para evitar problemas de SSR
+const Radio = dynamic(() => import('@/components/Radio'), {
   ssr: false
 });
 
@@ -69,14 +64,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body className={inter.className}>
         <DonationProvider>
           <TaskProvider>
-            <RadioProvider>
               {children}
             {/* Player da Rádio */}
             {user && (
-              <>
-                <RadioPlayer defaultVolume={0.3} />
-                <RadioBroadcast />
-              </>
+              <Radio />
             )}
             {/* Rodapé fixo com botão Ajuda */}
             {user && (
@@ -137,7 +128,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                 </div>
               </div>
             )}
-            </RadioProvider>
           </TaskProvider>
         </DonationProvider>
       </body>
