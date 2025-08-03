@@ -7,13 +7,7 @@ import { TaskProvider } from "@/contexts/TaskContext";
 import { DonationProvider } from "@/contexts/DonationContext";
 import { useAuth } from "@/hooks/useAuth";
 import { useState } from "react";
-import dynamic from 'next/dynamic';
 import SEOHead from '@/components/SEOHead';
-
-// Carrega o componente de rádio dinamicamente para evitar problemas de SSR
-const Radio = dynamic(() => import('@/components/Radio'), {
-  ssr: false
-});
 
 const inter = Inter({
   subsets: ["latin"],
@@ -27,8 +21,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   const [helpDescription, setHelpDescription] = useState("");
   const [helpLoading, setHelpLoading] = useState(false);
   const [helpMessage, setHelpMessage] = useState<string|null>(null);
-
-
 
   const handleSendHelp = async () => {
     setHelpLoading(true);
@@ -65,10 +57,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <DonationProvider>
           <TaskProvider>
               {children}
-            {/* Player da Rádio */}
-            {user && (
-              <Radio />
-            )}
             {/* Rodapé fixo com botão Ajuda */}
             {user && (
               <footer className="fixed bottom-4 right-4 z-50">
