@@ -9,6 +9,7 @@ interface QueueUser {
   avatarUrl: string;
   joinedAt: string;
   cambiosEarned: number;
+  nextCambioIn: number; // segundos restantes para o próximo câmbio
 }
 
 interface QueueResults {
@@ -47,7 +48,7 @@ export function DonationProvider({ children }: { children: React.ReactNode }) {
   const [currentCode, setCurrentCode] = useState<string | null>(null);
   const [queueResults, setQueueResults] = useState<QueueResults | null>(null);
 
-  // Carregar estado inicial
+  // Carregar estado inicial e atualizar a cada 3 segundos
   useEffect(() => {
     const fetchDonationStatus = async () => {
       try {
@@ -56,8 +57,23 @@ export function DonationProvider({ children }: { children: React.ReactNode }) {
           const data = await response.json();
           setIsLive(data.isLive);
           setStartTime(data.startTime ? new Date(data.startTime) : null);
-          setQueue(data.queue || []);
           setCurrentCode(data.currentCode);
+          
+          // Atualizar a fila com os timers
+          const updatedQueue = data.queue.map((user: any) => {
+            const joinedAt = new Date(user.joinedAt);
+            const timeInQueue = Date.now() - joinedAt.getTime();
+            const cambiosEarned = Math.floor(timeInQueue / (3 * 60 * 1000)); // 3 minutos
+            const nextCambioIn = 180 - (Math.floor(timeInQueue / 1000) % 180); // 180 segundos = 3 minutos
+
+            return {
+              ...user,
+              cambiosEarned,
+              nextCambioIn
+            };
+          });
+          setQueue(updatedQueue);
+
           if (data.queueResults) {
             setQueueResults({
               totalTime: data.queueResults.totalTime,
@@ -70,16 +86,17 @@ export function DonationProvider({ children }: { children: React.ReactNode }) {
       }
     };
 
-    fetchDonationStatus();
-    const interval = setInterval(fetchDonationStatus, 5000); // Atualiza a cada 5 segundos
+    fetchDonationStatus(); // Primeira chamada imediata
+    const interval = setInterval(fetchDonationStatus, 3000); // Atualiza a cada 3 segundos
     return () => clearInterval(interval);
   }, []);
 
-  // Timer para atualizar o tempo decorrido
+  // Timer para atualizar o tempo decorrido e os câmbios
   useEffect(() => {
     if (!isLive || !startTime) return;
 
     const interval = setInterval(() => {
+      // Atualizar tempo decorrido
       const now = new Date();
       const diff = now.getTime() - startTime.getTime();
       const hours = Math.floor(diff / 3600000);
@@ -89,6 +106,22 @@ export function DonationProvider({ children }: { children: React.ReactNode }) {
         `${hours.toString().padStart(2, "0")}:${minutes
           .toString()
           .padStart(2, "0")}:${seconds.toString().padStart(2, "0")}`
+      );
+
+      // Atualizar câmbios e timers da fila
+      setQueue(currentQueue =>
+        currentQueue.map(user => {
+          const joinedAt = new Date(user.joinedAt);
+          const timeInQueue = now.getTime() - joinedAt.getTime();
+          const cambiosEarned = Math.floor(timeInQueue / (3 * 60 * 1000)); // 3 minutos
+          const nextCambioIn = 180 - (Math.floor(timeInQueue / 1000) % 180); // 180 segundos = 3 minutos
+
+          return {
+            ...user,
+            cambiosEarned,
+            nextCambioIn
+          };
+        })
       );
     }, 1000);
 
@@ -155,12 +188,14 @@ export function DonationProvider({ children }: { children: React.ReactNode }) {
 
       if (response.ok) {
         const data = await response.json();
+        const now = new Date();
         setQueue(currentQueue => [...currentQueue, {
           id: data.id,
           nickname: data.nickname,
           avatarUrl: `https://www.habbo.com.br/habbo-imaging/avatarimage?user=${data.nickname}&action=std&direction=2&head_direction=2&gesture=std&size=m`,
-          joinedAt: new Date().toISOString(),
-          cambiosEarned: 0
+          joinedAt: now.toISOString(),
+          cambiosEarned: 0,
+          nextCambioIn: 180 // 3 minutos
         }]);
       } else {
         const errorData = await response.json();

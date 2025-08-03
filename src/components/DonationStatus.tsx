@@ -29,6 +29,13 @@ export default function DonationStatus() {
     setNicknameInput("");
   };
 
+  // Função para formatar o timer
+  const formatTimer = (seconds: number) => {
+    const minutes = Math.floor(seconds / 60);
+    const remainingSeconds = seconds % 60;
+    return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
+  };
+
   return (
     <div className="relative overflow-hidden">
       {/* Background com gradiente e efeito de brilho */}
@@ -167,6 +174,17 @@ export default function DonationStatus() {
                   <div className="text-center">
                     <div className="text-white text-sm font-semibold">{user.nickname}</div>
                     <div className="text-green-400 text-lg font-bold">{user.cambiosEarned}c</div>
+                    {/* Timer para próximo câmbio */}
+                    <div className="text-xs text-gray-400 font-mono">
+                      Próximo em: {formatTimer(user.nextCambioIn)}
+                    </div>
+                    {/* Barra de progresso */}
+                    <div className="w-full h-1 bg-gray-700 rounded-full mt-1 overflow-hidden">
+                      <div
+                        className="h-full bg-gradient-to-r from-green-500 to-emerald-500 transition-all duration-1000"
+                        style={{ width: `${((180 - user.nextCambioIn) / 180) * 100}%` }}
+                      />
+                    </div>
                   </div>
                 </div>
               ))}
