@@ -4,8 +4,8 @@ import prisma from '@/lib/prisma';
 
 export async function GET(request: NextRequest) {
   try {
-    console.log('JWT_SECRET:', process.env.JWT_SECRET);
     const user = await getCurrentUser(request);
+    console.log('Token do usuário:', request.cookies.get('auth_token')?.value);
     console.log('Usuário retornado:', user);
 
     if (!user) {
@@ -24,6 +24,16 @@ export async function GET(request: NextRequest) {
       );
     }
 
+    // Garantir que o role seja um dos valores permitidos
+    const validRoles = ['user', 'helper', 'moderator', 'admin'];
+    const role = validRoles.includes(dbUser.role) ? dbUser.role : 'user';
+
+    console.log('Dados do usuário do banco:', {
+      id: dbUser.id,
+      nickname: dbUser.nickname,
+      role: role
+    });
+
     return NextResponse.json({
       user: {
         id: dbUser.id,
@@ -31,7 +41,7 @@ export async function GET(request: NextRequest) {
         email: dbUser.email,
         level: dbUser.level,
         points: dbUser.points,
-        role: dbUser.role as "user" | "helper" | "moderator" | "admin",
+        role: role as "user" | "helper" | "moderator" | "admin",
         donationParticipations: dbUser.donationParticipations || 0
       }
     });
@@ -42,4 +52,4 @@ export async function GET(request: NextRequest) {
       { status: 500 }
     );
   }
-} 
+}

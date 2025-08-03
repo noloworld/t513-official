@@ -75,6 +75,12 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Garantir que o role seja um dos valores permitidos
+    const validRoles = ['user', 'helper', 'moderator', 'admin'];
+    const role = validRoles.includes(user.role) ? user.role : 'user';
+
+    console.log('Role do usuário:', role);
+
     // Gera o token JWT
     const token = await createToken({
       id: user.id,
@@ -83,7 +89,7 @@ export async function POST(request: NextRequest) {
       level: user.level,
       points: user.points,
       isVerified: user.isVerified,
-      role: user.role as "user" | "helper" | "moderator" | "admin"
+      role: role as "user" | "helper" | "moderator" | "admin"
     });
 
     // Configura o cookie
@@ -96,7 +102,7 @@ export async function POST(request: NextRequest) {
         level: user.level,
         points: user.points,
         isVerified: user.isVerified,
-        role: user.role
+        role: role
       }
     });
 
