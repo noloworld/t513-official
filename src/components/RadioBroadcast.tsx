@@ -12,9 +12,12 @@ export default function RadioBroadcast() {
   const gainNodeRef = useRef<GainNode | null>(null);
 
   // Verifica permissão
-  if (!user || !['admin', 'moderator'].includes(user.role)) {
+  if (!user || !user.role || !['admin', 'moderator'].includes(user.role)) {
+    console.log('Usuário não tem permissão para transmitir:', user);
     return null;
   }
+  
+  console.log('Usuário tem permissão para transmitir:', user);
 
   const startTransmission = async () => {
     try {
