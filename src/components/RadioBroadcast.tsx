@@ -11,13 +11,24 @@ export default function RadioBroadcast() {
   const sourceNodeRef = useRef<MediaStreamAudioSourceNode | null>(null);
   const gainNodeRef = useRef<GainNode | null>(null);
 
-  // Verifica permissão
-  if (!user || !user.role || !['admin', 'moderator'].includes(user.role)) {
-    console.log('Usuário não tem permissão para transmitir:', user);
+  // Estado para controlar a visibilidade do componente
+  const [hasPermission, setHasPermission] = useState(false);
+
+  // Verifica permissão quando o usuário mudar
+  useEffect(() => {
+    if (user && user.role && ['admin', 'moderator'].includes(user.role)) {
+      console.log('Usuário tem permissão para transmitir:', user);
+      setHasPermission(true);
+    } else {
+      console.log('Usuário não tem permissão para transmitir:', user);
+      setHasPermission(false);
+    }
+  }, [user]);
+
+  // Retorna null se não tiver permissão
+  if (!hasPermission) {
     return null;
   }
-  
-  console.log('Usuário tem permissão para transmitir:', user);
 
   const startTransmission = async () => {
     try {

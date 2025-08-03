@@ -5,6 +5,13 @@ interface RadioPlayerProps {
 }
 
 export default function RadioPlayer({ defaultVolume = 0.5 }: RadioPlayerProps) {
+  // Estado para controlar a visibilidade do componente
+  const [isReady, setIsReady] = useState(false);
+
+  // Aguarda o componente montar completamente
+  useEffect(() => {
+    setIsReady(true);
+  }, []);
   const [isPlaying, setIsPlaying] = useState(false);
   const [volume, setVolume] = useState(defaultVolume);
   const [isLoading, setIsLoading] = useState(false);
@@ -96,6 +103,10 @@ export default function RadioPlayer({ defaultVolume = 0.5 }: RadioPlayerProps) {
       }
     };
   }, []);
+
+  if (!isReady) {
+    return null;
+  }
 
   return (
     <div className="fixed bottom-20 right-4 z-50 bg-black/80 backdrop-blur-sm rounded-lg p-4 shadow-xl border border-white/10">
