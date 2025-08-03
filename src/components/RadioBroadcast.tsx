@@ -1,8 +1,8 @@
-import { useState, useRef, useEffect } from 'react';
-import { useAuth } from '@/hooks/useAuth';
+import { useState, useRef } from 'react';
+import { useRadio } from '@/contexts/RadioContext';
 
 export default function RadioBroadcast() {
-  const { user } = useAuth();
+  const { hasPermission, isReady } = useRadio();
   const [isTransmitting, setIsTransmitting] = useState(false);
   const [audioSource, setAudioSource] = useState<'mic' | 'system'>('system');
   const [volume, setVolume] = useState(0.8);
@@ -11,22 +11,8 @@ export default function RadioBroadcast() {
   const sourceNodeRef = useRef<MediaStreamAudioSourceNode | null>(null);
   const gainNodeRef = useRef<GainNode | null>(null);
 
-  // Estado para controlar a visibilidade do componente
-  const [hasPermission, setHasPermission] = useState(false);
-
-  // Verifica permissão quando o usuário mudar
-  useEffect(() => {
-    if (user && user.role && ['admin', 'moderator'].includes(user.role)) {
-      console.log('Usuário tem permissão para transmitir:', user);
-      setHasPermission(true);
-    } else {
-      console.log('Usuário não tem permissão para transmitir:', user);
-      setHasPermission(false);
-    }
-  }, [user]);
-
-  // Retorna null se não tiver permissão
-  if (!hasPermission) {
+  // Retorna null se não estiver pronto ou não tiver permissão
+  if (!isReady || !hasPermission) {
     return null;
   }
 

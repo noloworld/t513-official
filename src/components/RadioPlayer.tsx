@@ -1,17 +1,12 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useRef } from 'react';
+import { useRadio } from '@/contexts/RadioContext';
 
 interface RadioPlayerProps {
   defaultVolume?: number;
 }
 
 export default function RadioPlayer({ defaultVolume = 0.5 }: RadioPlayerProps) {
-  // Estado para controlar a visibilidade do componente
-  const [isReady, setIsReady] = useState(false);
-
-  // Aguarda o componente montar completamente
-  useEffect(() => {
-    setIsReady(true);
-  }, []);
+  const { isReady } = useRadio();
   const [isPlaying, setIsPlaying] = useState(false);
   const [volume, setVolume] = useState(defaultVolume);
   const [isLoading, setIsLoading] = useState(false);

@@ -5,6 +5,7 @@ import { Inter } from "next/font/google";
 import "./globals.css";
 import { TaskProvider } from "@/contexts/TaskContext";
 import { DonationProvider } from "@/contexts/DonationContext";
+import { RadioProvider } from "@/contexts/RadioContext";
 import { useAuth } from "@/hooks/useAuth";
 import { useState } from "react";
 import dynamic from 'next/dynamic';
@@ -68,7 +69,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body className={inter.className}>
         <DonationProvider>
           <TaskProvider>
-            {children}
+            <RadioProvider>
+              {children}
             {/* Player da Rádio */}
             {user && (
               <>
@@ -135,6 +137,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                 </div>
               </div>
             )}
+            </RadioProvider>
           </TaskProvider>
         </DonationProvider>
       </body>
