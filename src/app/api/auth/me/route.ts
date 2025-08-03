@@ -31,7 +31,7 @@ export async function GET(request: NextRequest) {
         email: dbUser.email,
         level: dbUser.level,
         points: dbUser.points,
-        role: dbUser.role || 'user',
+        role: dbUser.role as "user" | "helper" | "moderator" | "admin",
         donationParticipations: dbUser.donationParticipations || 0
       }
     });
