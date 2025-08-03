@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useRadio } from '@/contexts/RadioContext';
 
 export default function RadioBroadcast() {
