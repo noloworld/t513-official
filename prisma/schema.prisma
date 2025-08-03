@@ -212,3 +212,10 @@ model Suggestion {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 }
+
+model QueueUser {
+  id            String   @id @default(cuid())
+  nickname      String   @unique
+  joinedAt      DateTime @default(now())
+  cambiosEarned Int      @default(0)
+}
