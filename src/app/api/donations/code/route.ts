@@ -20,15 +20,17 @@ export async function POST(request: NextRequest) {
     }
 
     // Gera um código único
-    let code: string;
+    let code = generateCode();
     let isUnique = false;
+    
     while (!isUnique) {
-      code = generateCode();
       const existingDonation = await prisma.donation.findFirst({
         where: { currentCode: code },
       });
       if (!existingDonation) {
         isUnique = true;
+      } else {
+        code = generateCode();
       }
     }
 
