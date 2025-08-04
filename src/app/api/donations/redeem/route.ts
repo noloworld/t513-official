@@ -5,67 +5,71 @@ import { getCurrentUser } from '@/lib/auth';
 export async function POST(request: NextRequest) {
   try {
     const user = await getCurrentUser(request);
+    
     if (!user) {
-      return NextResponse.json(
-        { error: 'Não autenticado' },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: 'Não autorizado' }, { status: 401 });
     }
 
     const { code } = await request.json();
+
     if (!code) {
       return NextResponse.json(
-        { error: 'Código não fornecido' },
+        { error: 'Código é obrigatório' },
         { status: 400 }
       );
     }
 
-    // Buscar doação ativa
+    // Busca a doação ativa
     const activeDonation = await prisma.donation.findFirst({
-      where: { isActive: true }
+      where: { status: 'ACTIVE' },
     });
 
     if (!activeDonation) {
       return NextResponse.json(
-        { error: 'Não há doação em andamento' },
-        { status: 400 }
+        { error: 'Nenhuma doação ativa' },
+        { status: 404 }
       );
     }
 
-    // Verificar se existe um código ativo
-    if (!activeDonation.currentCode) {
-      return NextResponse.json(
-        { error: 'Não há código ativo no momento' },
-        { status: 400 }
-      );
-    }
-
-    // Verificar se o código está correto (case insensitive)
-    if (activeDonation.currentCode.toUpperCase() !== code.toUpperCase()) {
+    // Verifica se o código está correto
+    if (activeDonation.currentCode !== code) {
       return NextResponse.json(
         { error: 'Código inválido' },
         { status: 400 }
       );
     }
 
-    // Atualizar câmbios ganhos e participações em uma transação
-    await prisma.$transaction([
-      prisma.user.update({
-        where: { id: user.id },
-        data: {
-          donationParticipations: {
-            increment: 1
-          }
-        }
-      }),
-      prisma.donation.update({
-        where: { id: activeDonation.id },
-        data: { currentCode: null }
-      })
-    ]);
+    // Verifica se o usuário está na fila
+    const queueEntry = await prisma.queueUser.findFirst({
+      where: {
+        donationId: activeDonation.id,
+        userId: user.id,
+      },
+    });
+
+    if (!queueEntry) {
+      return NextResponse.json(
+        { error: 'Você não está na fila' },
+        { status: 400 }
+      );
+    }
+
+    // Atualiza os câmbios do usuário
+    const updatedEntry = await prisma.queueUser.update({
+      where: { id: queueEntry.id },
+      data: {
+        cambiosEarned: queueEntry.cambiosEarned + 1,
+      },
+    });
+
+    // Limpa o código
+    await prisma.donation.update({
+      where: { id: activeDonation.id },
+      data: { currentCode: null },
+    });
 
     return NextResponse.json({
-      message: 'Código resgatado com sucesso'
+      cambiosEarned: updatedEntry.cambiosEarned,
     });
   } catch (error) {
     console.error('Erro ao resgatar código:', error);
@@ -74,4 +78,4 @@ export async function POST(request: NextRequest) {
       { status: 500 }
     );
   }
-} 
+}

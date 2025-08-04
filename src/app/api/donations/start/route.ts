@@ -5,57 +5,32 @@ import { getCurrentUser } from '@/lib/auth';
 export async function POST(request: NextRequest) {
   try {
     const user = await getCurrentUser(request);
-    console.log('Token recebido:', request.cookies.get('auth_token')?.value);
-    console.log('Usuário autenticado:', user);
     
-    if (!user) {
-      console.log('Usuário não autenticado');
-      return NextResponse.json(
-        { error: 'Não autenticado' },
-        { status: 401 }
-      );
+    if (!user || user.role !== 'admin') {
+      return NextResponse.json({ error: 'Não autorizado' }, { status: 401 });
     }
 
-    // Buscar usuário atualizado do banco
-    const dbUser = await prisma.user.findUnique({
-      where: { id: user.id }
+    // Verifica se já existe uma doação ativa
+    const existingDonation = await prisma.donation.findFirst({
+      where: { status: 'ACTIVE' },
     });
 
-    console.log('Usuário do banco:', dbUser);
-    console.log('Role do usuário:', dbUser?.role);
-
-    if (!dbUser || dbUser.role !== 'admin') {
-      console.log('Usuário não é admin:', dbUser?.role);
+    if (existingDonation) {
       return NextResponse.json(
-        { error: 'Não autorizado' },
-        { status: 403 }
-      );
-    }
-
-    // Verificar se já existe uma doação ativa
-    const activeDonation = await prisma.donation.findFirst({
-      where: { isActive: true }
-    });
-
-    if (activeDonation) {
-      return NextResponse.json(
-        { error: 'Já existe uma doação em andamento' },
+        { error: 'Já existe uma doação ativa' },
         { status: 400 }
       );
     }
 
-    // Criar nova doação
+    // Cria uma nova doação
     const donation = await prisma.donation.create({
       data: {
+        status: 'ACTIVE',
         startTime: new Date(),
-        isActive: true
-      }
+      },
     });
 
-    return NextResponse.json({
-      message: 'Doação iniciada com sucesso',
-      startTime: donation.startTime
-    });
+    return NextResponse.json(donation);
   } catch (error) {
     console.error('Erro ao iniciar doação:', error);
     return NextResponse.json(

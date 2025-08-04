@@ -1,86 +1,59 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { PrismaClient } from '@prisma/client';
+import prisma from '@/lib/prisma';
 import { getCurrentUser } from '@/lib/auth';
-
-const prisma = new PrismaClient();
 
 export async function POST(request: NextRequest) {
   try {
     const user = await getCurrentUser(request);
+    
     if (!user) {
-      return NextResponse.json(
-        { error: 'Não autenticado' },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: 'Não autorizado' }, { status: 401 });
     }
 
-    console.log('Usuário tentando entrar na fila:', user);
-
-    // Verificar se o usuário existe no banco
-    const dbUser = await prisma.user.findUnique({
-      where: { id: user.id }
+    // Verifica se o usuário já está em alguma fila
+    const existingEntry = await prisma.queueUser.findFirst({
+      where: {
+        userId: user.id,
+        donation: {
+          status: 'ACTIVE',
+        },
+      },
     });
 
-    if (!dbUser) {
-      console.log('Usuário não encontrado no banco:', user.id);
-      return NextResponse.json(
-        { error: 'Usuário não encontrado' },
-        { status: 404 }
-      );
-    }
-
-    // Buscar doação ativa
-    const activeDonation = await prisma.donation.findFirst({
-      where: { isActive: true },
-      include: {
-        queue: {
-          where: {
-            userId: user.id
-          }
-        }
-      }
-    });
-
-    console.log('Doação ativa encontrada:', activeDonation);
-
-    if (!activeDonation) {
-      return NextResponse.json(
-        { error: 'Não há doação em andamento' },
-        { status: 400 }
-      );
-    }
-
-    // Verificar se o usuário já está na fila
-    if (activeDonation.queue.length > 0) {
+    if (existingEntry) {
       return NextResponse.json(
         { error: 'Você já está na fila' },
         { status: 400 }
       );
     }
 
-    // Adicionar usuário à fila
-    const queueEntry = await prisma.queueEntry.create({
+    // Busca a doação ativa
+    const activeDonation = await prisma.donation.findFirst({
+      where: { status: 'ACTIVE' },
+    });
+
+    if (!activeDonation) {
+      return NextResponse.json(
+        { error: 'Nenhuma doação ativa' },
+        { status: 404 }
+      );
+    }
+
+    // Adiciona o usuário à fila
+    const queueEntry = await prisma.queueUser.create({
       data: {
         donationId: activeDonation.id,
-        userId: dbUser.id,
-        joinedAt: new Date(),
-        cambiosEarned: 0
-      }
+        userId: user.id,
+        avatarUrl: `https://www.habbo.com.br/habbo-imaging/avatarimage?user=${user.nickname}&action=std&direction=2&head_direction=2&gesture=std&size=m`,
+      },
     });
 
-    console.log('Entrada na fila criada:', queueEntry);
-
-    return NextResponse.json({
-      message: 'Entrou na fila com sucesso',
-      queueEntry
-    });
+    return NextResponse.json(queueEntry);
   } catch (error) {
     console.error('Erro ao entrar na fila:', error);
     return NextResponse.json(
       { error: 'Erro ao entrar na fila' },
       { status: 500 }
     );
-  } finally {
-    await prisma.$disconnect();
   }
-} 
+}

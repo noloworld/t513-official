@@ -1,57 +1,36 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { PrismaClient } from '@prisma/client';
+import prisma from '@/lib/prisma';
 import { getCurrentUser } from '@/lib/auth';
-
-const prisma = new PrismaClient();
 
 export async function POST(request: NextRequest) {
   try {
     const user = await getCurrentUser(request);
+    
     if (!user) {
-      return NextResponse.json(
-        { error: 'Não autenticado' },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: 'Não autorizado' }, { status: 401 });
     }
 
-    // Buscar doação ativa
+    // Busca a doação ativa
     const activeDonation = await prisma.donation.findFirst({
-      where: { isActive: true },
-      include: {
-        queue: {
-          where: {
-            userId: user.id
-          }
-        }
-      }
+      where: { status: 'ACTIVE' },
     });
 
     if (!activeDonation) {
       return NextResponse.json(
-        { error: 'Não há doação em andamento' },
-        { status: 400 }
+        { error: 'Nenhuma doação ativa' },
+        { status: 404 }
       );
     }
 
-    // Verificar se o usuário está na fila
-    if (activeDonation.queue.length === 0) {
-      return NextResponse.json(
-        { error: 'Você não está na fila' },
-        { status: 400 }
-      );
-    }
-
-    // Remover usuário da fila
-    const removedEntry = await prisma.queueEntry.delete({
+    // Remove o usuário da fila
+    await prisma.queueUser.deleteMany({
       where: {
-        id: activeDonation.queue[0].id
-      }
+        donationId: activeDonation.id,
+        userId: user.id,
+      },
     });
 
-    return NextResponse.json({
-      message: 'Saiu da fila com sucesso',
-      removedEntry
-    });
+    return NextResponse.json({ success: true });
   } catch (error) {
     console.error('Erro ao sair da fila:', error);
     return NextResponse.json(
@@ -59,4 +38,4 @@ export async function POST(request: NextRequest) {
       { status: 500 }
     );
   }
-} 
+}
