@@ -37,6 +37,7 @@ model User {
   helpRequests        HelpRequest[]
   suggestions         Suggestion[]
   bans                UserBan[]
+  relatedBans         UserBan[]            @relation("related_bans")
 }
 
 model UserBan {
@@ -45,9 +46,9 @@ model UserBan {
   reason      String
   ipAddress   String
   deviceInfo  String
-  relatedBans String   // Armazenado como JSON string
   createdAt   DateTime @default(now())
   user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  relatedUsers User[]  @relation("related_bans")
 }
 
 model Event {

@@ -1,90 +1,89 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '@/lib/prisma';
 import { getCurrentUser } from '@/lib/auth';
-
-const prisma = new PrismaClient();
 
 export async function GET(request: NextRequest) {
   try {
-    // Verifica se o usuário está autenticado e é admin
-    const currentUser = await getCurrentUser(request);
-    if (!currentUser || !['admin', 'moderator'].includes(currentUser.role)) {
-      return NextResponse.json(
-        { error: 'Acesso não autorizado' },
-        { status: 403 }
-      );
+    const user = await getCurrentUser(request);
+    
+    if (!user || user.role !== 'admin') {
+      return NextResponse.json({ error: 'Não autorizado' }, { status: 401 });
     }
 
-    // Busca todos os banimentos com informações relacionadas
     const bans = await prisma.userBan.findMany({
       include: {
         user: {
           select: {
             nickname: true,
-            email: true,
-            createdAt: true,
-            bannedAt: true
-          }
-        }
+          },
+        },
+        relatedUsers: {
+          select: {
+            nickname: true,
+          },
+        },
       },
       orderBy: {
-        createdAt: 'desc'
-      }
+        createdAt: 'desc',
+      },
     });
 
-    return NextResponse.json({ bans });
-
+    return NextResponse.json(bans);
   } catch (error) {
     console.error('Erro ao buscar banimentos:', error);
-    return NextResponse.json(
-      { error: 'Erro ao buscar banimentos' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: 'Erro interno do servidor' }, { status: 500 });
   }
 }
 
-// Rota para desbanir usuário (apenas admin)
 export async function POST(request: NextRequest) {
   try {
-    // Verifica se é admin
-    const currentUser = await getCurrentUser(request);
-    if (!currentUser || currentUser.role !== 'admin') {
-      return NextResponse.json(
-        { error: 'Apenas administradores podem desbanir usuários' },
-        { status: 403 }
-      );
+    const user = await getCurrentUser(request);
+    
+    if (!user || user.role !== 'admin') {
+      return NextResponse.json({ error: 'Não autorizado' }, { status: 401 });
     }
 
-    const { userId } = await request.json();
+    const data = await request.json();
+    const { userId, reason, ipAddress, deviceInfo, relatedUserIds } = data;
 
-    // Reativa a conta
-    await prisma.user.update({
-      where: { id: userId },
+    // Verifica se o usuário já está banido
+    const existingBan = await prisma.userBan.findFirst({
+      where: { userId },
+    });
+
+    if (existingBan) {
+      return NextResponse.json({ error: 'Usuário já está banido' }, { status: 400 });
+    }
+
+    // Cria o banimento
+    const ban = await prisma.userBan.create({
       data: {
-        isActive: true,
-        bannedAt: null
-      }
+        userId,
+        reason,
+        ipAddress,
+        deviceInfo,
+        relatedUsers: {
+          connect: relatedUserIds.map((id: string) => ({ id })),
+        },
+      },
     });
 
-    // Remove os registros de banimento
-    await prisma.userBan.deleteMany({
+    // Atualiza o status dos usuários banidos
+    await prisma.user.updateMany({
       where: {
-        OR: [
-          { userId },
-          { relatedBans: { has: userId } }
-        ]
-      }
+        id: {
+          in: [userId, ...relatedUserIds],
+        },
+      },
+      data: {
+        isActive: false,
+        bannedAt: new Date(),
+      },
     });
 
-    return NextResponse.json({
-      message: 'Usuário desbanido com sucesso'
-    });
-
+    return NextResponse.json(ban);
   } catch (error) {
-    console.error('Erro ao desbanir usuário:', error);
-    return NextResponse.json(
-      { error: 'Erro ao desbanir usuário' },
-      { status: 500 }
-    );
+    console.error('Erro ao criar banimento:', error);
+    return NextResponse.json({ error: 'Erro interno do servidor' }, { status: 500 });
   }
 }
