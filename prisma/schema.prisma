@@ -45,7 +45,7 @@ model UserBan {
   reason      String
   ipAddress   String
   deviceInfo  String
-  relatedBans String[]
+  relatedBans String   // Armazenado como JSON string
   createdAt   DateTime @default(now())
   user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
@@ -100,7 +100,7 @@ model UserBadge {
 model Task {
   id          String        @id @default(cuid())
   question    String
-  options     String[]
+  options     String        // Armazenado como JSON string
   answer      Int
   points      Int
   type        String        @default("daily")
