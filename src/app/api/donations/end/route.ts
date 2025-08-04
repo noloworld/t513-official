@@ -2,106 +2,102 @@ import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { getCurrentUser } from '@/lib/auth';
 
-interface QueueUser {
-  id: string;
-  userId: string;
-  nickname: string;
-  joinedAt: Date;
-  cambiosEarned: number;
-  user: {
-    nickname: string;
-  };
-}
-
 export async function POST(request: NextRequest) {
   try {
     const user = await getCurrentUser(request);
-    if (!user) {
-      return NextResponse.json(
-        { error: 'Não autenticado' },
-        { status: 401 }
-      );
+    
+    if (!user || user.role !== 'admin') {
+      return NextResponse.json({ error: 'Não autorizado' }, { status: 401 });
     }
 
-    if (user.role !== 'admin') {
-      return NextResponse.json(
-        { error: 'Não autorizado' },
-        { status: 403 }
-      );
-    }
-
-    // Buscar doação ativa com a fila
+    // Busca a doação ativa e encerra ela em uma transação
     const activeDonation = await prisma.$transaction(async (tx) => {
       const donation = await tx.donation.findFirst({
-        where: { isActive: true },
+        where: { status: 'ACTIVE' },
         include: {
-          queue: {
+          queueUsers: {
             include: {
-              user: true
+              user: {
+                select: {
+                  nickname: true,
+                },
+              },
             },
             orderBy: {
-              joinedAt: 'asc'
-            }
-          }
-        }
+              joinedAt: 'asc',
+            },
+          },
+        },
       });
 
-      if (!donation) return null;
-
-      // Calcular resultados da fila
-      const queueResults = donation.queue.map((entry, index) => {
-        const joinedAt = new Date(entry.joinedAt);
-        const now = new Date();
-        const timeInQueue = now.getTime() - joinedAt.getTime();
-        const cambiosEarned = Math.floor(timeInQueue / (3 * 60 * 1000)); // 3 minutos por câmbio
-
-        return {
-          userId: entry.userId,
-          nickname: entry.user.nickname,
-          cambiosEarned,
-          position: index + 1
-        };
-      });
-
-      // Atualizar participações dos usuários
-      for (const result of queueResults) {
-        await tx.user.update({
-          where: { id: result.userId },
-          data: {
-            donationParticipations: {
-              increment: 1
-            }
-          }
-        });
+      if (!donation) {
+        return null;
       }
 
-      // Encerrar doação
-      await tx.donation.update({
+      // Cria os registros de participação
+      const participations = await Promise.all(
+        donation.queueUsers.map((entry) =>
+          tx.donationParticipation.create({
+            data: {
+              donationId: donation.id,
+              userId: entry.userId,
+              cambios: entry.cambiosEarned,
+              joinedAt: entry.joinedAt,
+              leftAt: new Date(),
+            },
+          })
+        )
+      );
+
+      // Atualiza a doação
+      const updatedDonation = await tx.donation.update({
         where: { id: donation.id },
         data: {
-          isActive: false,
+          status: 'ENDED',
           endTime: new Date(),
-          queueStopped: false
-        }
+          currentCode: null,
+        },
+        include: {
+          queueUsers: {
+            include: {
+              user: {
+                select: {
+                  nickname: true,
+                },
+              },
+            },
+            orderBy: {
+              cambiosEarned: 'desc',
+            },
+          },
+        },
       });
 
       return {
-        donation,
-        results: queueResults
+        ...updatedDonation,
+        participants: participations,
       };
     });
 
     if (!activeDonation) {
       return NextResponse.json(
-        { error: 'Não há doação em andamento' },
-        { status: 400 }
+        { error: 'Nenhuma doação ativa' },
+        { status: 404 }
       );
     }
 
-    return NextResponse.json({
-      message: 'Doação encerrada com sucesso',
-      results: activeDonation.results
-    });
+    // Formata os resultados
+    const results = {
+      totalTime: formatElapsedTime(activeDonation.startTime, activeDonation.endTime!),
+      participants: activeDonation.queueUsers.map((entry, index) => ({
+        nickname: entry.user.nickname,
+        cambiosEarned: entry.cambiosEarned,
+        position: index + 1,
+        avatarUrl: `https://www.habbo.com.br/habbo-imaging/avatarimage?user=${entry.user.nickname}&action=std&direction=2&head_direction=2&gesture=std&size=m`,
+      })),
+    };
+
+    return NextResponse.json(results);
   } catch (error) {
     console.error('Erro ao encerrar doação:', error);
     return NextResponse.json(
@@ -109,4 +105,13 @@ export async function POST(request: NextRequest) {
       { status: 500 }
     );
   }
-} 
+}
+
+function formatElapsedTime(startTime: Date, endTime: Date): string {
+  const diff = endTime.getTime() - startTime.getTime();
+  const hours = Math.floor(diff / 3600000);
+  const minutes = Math.floor((diff % 3600000) / 60000);
+  const seconds = Math.floor((diff % 60000) / 1000);
+  
+  return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+}
