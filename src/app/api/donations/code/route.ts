@@ -2,8 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { getCurrentUser } from '@/lib/auth';
 
-// Função para gerar um código aleatório de 6 caracteres
-function generateCode() {
+function generateCode(): string {
   const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
   let code = '';
   for (let i = 0; i < 6; i++) {
@@ -15,55 +14,43 @@ function generateCode() {
 export async function POST(request: NextRequest) {
   try {
     const user = await getCurrentUser(request);
-    if (!user) {
-      return NextResponse.json(
-        { error: 'Não autenticado' },
-        { status: 401 }
-      );
+    
+    if (!user || user.role !== 'admin') {
+      return NextResponse.json({ error: 'Não autorizado' }, { status: 401 });
     }
 
-    if (user.role !== 'admin') {
-      return NextResponse.json(
-        { error: 'Não autorizado' },
-        { status: 403 }
-      );
+    // Gera um código único
+    let code: string;
+    let isUnique = false;
+    while (!isUnique) {
+      code = generateCode();
+      const existingDonation = await prisma.donation.findFirst({
+        where: { currentCode: code },
+      });
+      if (!existingDonation) {
+        isUnique = true;
+      }
     }
 
     // Buscar doação ativa
     const activeDonation = await prisma.donation.findFirst({
-      where: { isActive: true }
+      where: { status: 'ACTIVE' },
     });
 
     if (!activeDonation) {
       return NextResponse.json(
-        { error: 'Não há doação em andamento' },
-        { status: 400 }
+        { error: 'Nenhuma doação ativa' },
+        { status: 404 }
       );
     }
 
-    // Verificar se já existe um código ativo
-    if (activeDonation.currentCode) {
-      return NextResponse.json(
-        { error: 'Já existe um código ativo' },
-        { status: 400 }
-      );
-    }
-
-    // Gerar e salvar novo código
-    const code = generateCode();
-    const updatedDonation = await prisma.donation.update({
+    // Atualiza a doação com o novo código
+    await prisma.donation.update({
       where: { id: activeDonation.id },
-      data: { currentCode: code }
+      data: { currentCode: code },
     });
 
-    if (!updatedDonation.currentCode) {
-      throw new Error('Falha ao salvar o código');
-    }
-
-    return NextResponse.json({
-      message: 'Código gerado com sucesso',
-      code
-    });
+    return NextResponse.json({ code });
   } catch (error) {
     console.error('Erro ao gerar código:', error);
     return NextResponse.json(
@@ -71,4 +58,4 @@ export async function POST(request: NextRequest) {
       { status: 500 }
     );
   }
-} 
+}
