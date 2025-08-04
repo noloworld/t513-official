@@ -1,38 +1,49 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getCurrentUser } from '@/lib/auth';
 import prisma from '@/lib/prisma';
+import { cookies } from 'next/headers';
+import { verifyToken } from '@/lib/auth';
 
 export async function GET(request: NextRequest) {
   try {
-    const user = await getCurrentUser(request);
-    console.log('Token do usuário:', request.cookies.get('auth_token')?.value);
-    console.log('Usuário retornado:', user);
+    const token = cookies().get('auth_token')?.value;
 
-    if (!user) {
-      return NextResponse.json(
-        { error: 'Não autenticado' },
-        { status: 401 }
-      );
+    if (!token) {
+      return NextResponse.json({ error: 'Não autorizado' }, { status: 401 });
     }
 
-    // Buscar usuário atualizado do banco
-    const dbUser = await prisma.user.findUnique({ where: { id: user.id } });
-    if (!dbUser) {
-      return NextResponse.json(
-        { error: 'Usuário não encontrado' },
-        { status: 404 }
-      );
+    const decoded = verifyToken(token);
+    if (!decoded) {
+      return NextResponse.json({ error: 'Token inválido' }, { status: 401 });
     }
 
-    // Garantir que o role seja um dos valores permitidos
-    const validRoles = ['user', 'helper', 'moderator', 'admin'];
-    const role = validRoles.includes(dbUser.role) ? dbUser.role : 'user';
-
-    console.log('Dados do usuário do banco:', {
-      id: dbUser.id,
-      nickname: dbUser.nickname,
-      role: role
+    const dbUser = await prisma.user.findUnique({
+      where: { id: decoded.id },
+      select: {
+        id: true,
+        nickname: true,
+        email: true,
+        level: true,
+        points: true,
+        role: true,
+        isActive: true,
+        bannedAt: true,
+        donationParticipations: {
+          select: {
+            id: true,
+          },
+        },
+      },
     });
+
+    if (!dbUser) {
+      return NextResponse.json({ error: 'Usuário não encontrado' }, { status: 404 });
+    }
+
+    if (!dbUser.isActive || dbUser.bannedAt) {
+      return NextResponse.json({ error: 'Conta banida' }, { status: 403 });
+    }
+
+    const role = dbUser.role as "user" | "helper" | "moderator" | "admin";
 
     return NextResponse.json({
       user: {
@@ -41,15 +52,12 @@ export async function GET(request: NextRequest) {
         email: dbUser.email,
         level: dbUser.level,
         points: dbUser.points,
-        role: role as "user" | "helper" | "moderator" | "admin",
-        donationParticipations: dbUser.donationParticipations || 0
+        role: role,
+        donationParticipations: dbUser.donationParticipations.length
       }
     });
   } catch (error) {
-    console.error('Erro ao obter usuário:', error);
-    return NextResponse.json(
-      { error: 'Erro ao obter usuário' },
-      { status: 500 }
-    );
+    console.error('Erro ao buscar usuário:', error);
+    return NextResponse.json({ error: 'Erro interno do servidor' }, { status: 500 });
   }
 }
