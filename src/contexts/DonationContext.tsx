@@ -6,158 +6,153 @@ import { useAuth } from '@/hooks/useAuth';
 interface QueueUser {
   id: string;
   nickname: string;
-  avatarUrl: string;
-  joinedAt: string;
   cambiosEarned: number;
-  nextCambioIn: number; // segundos restantes para o próximo câmbio
-}
-
-interface QueueResults {
-  totalTime: string;
-  participants: {
-    nickname: string;
-    avatarUrl: string;
-    cambiosEarned: number;
-    position: number;
-  }[];
+  nextCambioIn: number;
+  avatarUrl: string;
 }
 
 interface DonationContextType {
   isLive: boolean;
-  startTime: Date | null;
+  isQueuePaused: boolean;
   elapsedTime: string;
   queue: QueueUser[];
   currentCode: string | null;
-  queueResults: QueueResults | null;
-  // Funções para admins
+  queueResults: any;
   startDonation: () => Promise<void>;
   endDonation: () => Promise<void>;
-  generateCode: () => Promise<string>;
+  generateCode: () => Promise<void>;
   addToQueue: (nickname: string) => Promise<void>;
   removeFromQueue: (nickname: string) => Promise<void>;
+  redeemCode: (code: string) => Promise<void>;
+  toggleQueuePause: () => Promise<void>;
 }
 
-const DonationContext = createContext<DonationContextType | null>(null);
+const DonationContext = createContext<DonationContextType | undefined>(undefined);
 
 export function DonationProvider({ children }: { children: React.ReactNode }) {
   const { user } = useAuth();
   const [isLive, setIsLive] = useState(false);
-  const [startTime, setStartTime] = useState<Date | null>(null);
+  const [isQueuePaused, setIsQueuePaused] = useState(false);
   const [elapsedTime, setElapsedTime] = useState("00:00:00");
   const [queue, setQueue] = useState<QueueUser[]>([]);
   const [currentCode, setCurrentCode] = useState<string | null>(null);
-  const [queueResults, setQueueResults] = useState<QueueResults | null>(null);
+  const [queueResults, setQueueResults] = useState(null);
+  const [startTime, setStartTime] = useState<Date | null>(null);
 
-  // Carregar estado inicial e atualizar a cada 3 segundos
-  useEffect(() => {
-    const fetchDonationStatus = async () => {
-      try {
-        const response = await fetch('/api/donations/status');
-        if (response.ok) {
-          const data = await response.json();
-          setIsLive(data.isLive);
-          setStartTime(data.startTime ? new Date(data.startTime) : null);
-          setCurrentCode(data.currentCode);
-          
-          // Atualizar a fila com os timers
-          const updatedQueue = data.queue.map((user: any) => {
-            const joinedAt = new Date(user.joinedAt);
-            const timeInQueue = Date.now() - joinedAt.getTime();
-            const cambiosEarned = Math.floor(timeInQueue / (3 * 60 * 1000)); // 3 minutos
-            const nextCambioIn = 180 - (Math.floor(timeInQueue / 1000) % 180); // 180 segundos = 3 minutos
+  // Função para buscar o status da doação
+  const fetchDonationStatus = async () => {
+    try {
+      const response = await fetch('/api/donations/status');
+      const data = await response.json();
 
-            return {
-              ...user,
-              cambiosEarned,
-              nextCambioIn
-            };
-          });
-          setQueue(updatedQueue);
-
-          if (data.queueResults) {
-            setQueueResults({
-              totalTime: data.queueResults.totalTime,
-              participants: data.queueResults.participants
-            });
-          }
-        }
-      } catch (error) {
-        console.error('Erro ao carregar status da doação:', error);
+      setIsLive(data.isLive);
+      setIsQueuePaused(data.isQueuePaused);
+      setQueue(data.queue.map((user: any) => ({
+        ...user,
+        nextCambioIn: user.nextCambioIn || 180 // 3 minutos por padrão
+      })));
+      setCurrentCode(data.currentCode);
+      setQueueResults(data.results);
+      
+      if (data.startTime) {
+        setStartTime(new Date(data.startTime));
       }
-    };
+    } catch (error) {
+      console.error('Erro ao buscar status da doação:', error);
+    }
+  };
 
-    fetchDonationStatus(); // Primeira chamada imediata
-    const interval = setInterval(fetchDonationStatus, 3000); // Atualiza a cada 3 segundos
-    return () => clearInterval(interval);
-  }, []);
-
-  // Timer para atualizar o tempo decorrido e os câmbios
+  // Atualiza o tempo decorrido
   useEffect(() => {
     if (!isLive || !startTime) return;
 
     const interval = setInterval(() => {
-      // Atualizar tempo decorrido
       const now = new Date();
       const diff = now.getTime() - startTime.getTime();
       const hours = Math.floor(diff / 3600000);
       const minutes = Math.floor((diff % 3600000) / 60000);
       const seconds = Math.floor((diff % 60000) / 1000);
+      
       setElapsedTime(
-        `${hours.toString().padStart(2, "0")}:${minutes
-          .toString()
-          .padStart(2, "0")}:${seconds.toString().padStart(2, "0")}`
-      );
-
-      // Atualizar câmbios e timers da fila
-      setQueue(currentQueue =>
-        currentQueue.map(user => {
-          const joinedAt = new Date(user.joinedAt);
-          const timeInQueue = now.getTime() - joinedAt.getTime();
-          const cambiosEarned = Math.floor(timeInQueue / (3 * 60 * 1000)); // 3 minutos
-          const nextCambioIn = 180 - (Math.floor(timeInQueue / 1000) % 180); // 180 segundos = 3 minutos
-
-          return {
-            ...user,
-            cambiosEarned,
-            nextCambioIn
-          };
-        })
+        `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`
       );
     }, 1000);
 
     return () => clearInterval(interval);
   }, [isLive, startTime]);
 
-  // Funções para admins
+  // Atualiza os câmbios e timers dos usuários na fila
+  useEffect(() => {
+    if (!isLive || isQueuePaused) return;
+
+    const interval = setInterval(() => {
+      setQueue(prevQueue => 
+        prevQueue.map(user => ({
+          ...user,
+          nextCambioIn: Math.max(0, user.nextCambioIn - 1),
+        }))
+      );
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [isLive, isQueuePaused]);
+
+  // Verifica e atualiza câmbios a cada segundo
+  useEffect(() => {
+    if (!isLive || isQueuePaused) return;
+
+    const interval = setInterval(() => {
+      setQueue(prevQueue => 
+        prevQueue.map(user => {
+          if (user.nextCambioIn === 0) {
+            return {
+              ...user,
+              cambiosEarned: user.cambiosEarned + 1,
+              nextCambioIn: 180 // Reseta para 3 minutos
+            };
+          }
+          return user;
+        })
+      );
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [isLive, isQueuePaused]);
+
+  // Busca o status a cada 3 segundos
+  useEffect(() => {
+    fetchDonationStatus();
+    const interval = setInterval(fetchDonationStatus, 3000);
+    return () => clearInterval(interval);
+  }, []);
+
   const startDonation = async () => {
     try {
-      const response = await fetch('/api/donations/start', { method: 'POST' });
+      const response = await fetch('/api/donations/start', {
+        method: 'POST',
+      });
       
-      if (response.ok) {
-        const data = await response.json();
-        setIsLive(true);
-        setStartTime(new Date(data.startTime));
-        setQueueResults(null);
-      } else {
-        const errorData = await response.json();
-        alert(errorData.error || 'Erro ao iniciar doação');
+      if (!response.ok) {
+        throw new Error('Erro ao iniciar doação');
       }
+      
+      await fetchDonationStatus();
     } catch (error) {
       console.error('Erro ao iniciar doação:', error);
-      alert('Erro ao iniciar doação. Tente novamente.');
     }
   };
 
   const endDonation = async () => {
     try {
-      const response = await fetch('/api/donations/end', { method: 'POST' });
-      if (response.ok) {
-        setIsLive(false);
-        setStartTime(null);
-        setQueue([]);
-        setCurrentCode(null);
-        setQueueResults(null);
+      const response = await fetch('/api/donations/end', {
+        method: 'POST',
+      });
+      
+      if (!response.ok) {
+        throw new Error('Erro ao encerrar doação');
       }
+      
+      await fetchDonationStatus();
     } catch (error) {
       console.error('Erro ao encerrar doação:', error);
     }
@@ -165,16 +160,18 @@ export function DonationProvider({ children }: { children: React.ReactNode }) {
 
   const generateCode = async () => {
     try {
-      const response = await fetch('/api/donations/code', { method: 'POST' });
-      if (response.ok) {
-        const data = await response.json();
-        setCurrentCode(data.code);
-        return data.code;
+      const response = await fetch('/api/donations/code', {
+        method: 'POST',
+      });
+      
+      if (!response.ok) {
+        throw new Error('Erro ao gerar código');
       }
-      return '';
+      
+      const data = await response.json();
+      setCurrentCode(data.code);
     } catch (error) {
       console.error('Erro ao gerar código:', error);
-      return '';
     }
   };
 
@@ -182,28 +179,19 @@ export function DonationProvider({ children }: { children: React.ReactNode }) {
     try {
       const response = await fetch('/api/donations/queue/add', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ nickname })
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ nickname }),
       });
-
-      if (response.ok) {
-        const data = await response.json();
-        const now = new Date();
-        setQueue(currentQueue => [...currentQueue, {
-          id: data.id,
-          nickname: data.nickname,
-          avatarUrl: `https://www.habbo.com.br/habbo-imaging/avatarimage?user=${data.nickname}&action=std&direction=2&head_direction=2&gesture=std&size=m`,
-          joinedAt: now.toISOString(),
-          cambiosEarned: 0,
-          nextCambioIn: 180 // 3 minutos
-        }]);
-      } else {
-        const errorData = await response.json();
-        alert(errorData.error || 'Erro ao adicionar usuário à fila');
+      
+      if (!response.ok) {
+        throw new Error('Erro ao adicionar usuário à fila');
       }
+      
+      await fetchDonationStatus();
     } catch (error) {
-      console.error('Erro ao adicionar à fila:', error);
-      alert('Erro ao adicionar usuário à fila. Tente novamente.');
+      console.error('Erro ao adicionar usuário à fila:', error);
     }
   };
 
@@ -211,19 +199,60 @@ export function DonationProvider({ children }: { children: React.ReactNode }) {
     try {
       const response = await fetch('/api/donations/queue/remove', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ nickname })
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ nickname }),
       });
-
-      if (response.ok) {
-        setQueue(currentQueue => currentQueue.filter(user => user.nickname !== nickname));
-      } else {
-        const errorData = await response.json();
-        alert(errorData.error || 'Erro ao remover usuário da fila');
+      
+      if (!response.ok) {
+        throw new Error('Erro ao remover usuário da fila');
       }
+      
+      await fetchDonationStatus();
     } catch (error) {
-      console.error('Erro ao remover da fila:', error);
-      alert('Erro ao remover usuário da fila. Tente novamente.');
+      console.error('Erro ao remover usuário da fila:', error);
+    }
+  };
+
+  const redeemCode = async (code: string) => {
+    try {
+      const response = await fetch('/api/donations/redeem', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ code }),
+      });
+      
+      if (!response.ok) {
+        throw new Error('Erro ao resgatar código');
+      }
+      
+      await fetchDonationStatus();
+    } catch (error) {
+      console.error('Erro ao resgatar código:', error);
+    }
+  };
+
+  const toggleQueuePause = async () => {
+    try {
+      const response = await fetch('/api/donations/queue/pause', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ isPaused: !isQueuePaused }),
+      });
+      
+      if (!response.ok) {
+        throw new Error('Erro ao pausar/retomar fila');
+      }
+      
+      setIsQueuePaused(!isQueuePaused);
+      await fetchDonationStatus();
+    } catch (error) {
+      console.error('Erro ao pausar/retomar fila:', error);
     }
   };
 
@@ -231,7 +260,7 @@ export function DonationProvider({ children }: { children: React.ReactNode }) {
     <DonationContext.Provider
       value={{
         isLive,
-        startTime,
+        isQueuePaused,
         elapsedTime,
         queue,
         currentCode,
@@ -240,7 +269,9 @@ export function DonationProvider({ children }: { children: React.ReactNode }) {
         endDonation,
         generateCode,
         addToQueue,
-        removeFromQueue
+        removeFromQueue,
+        redeemCode,
+        toggleQueuePause
       }}
     >
       {children}
@@ -250,8 +281,8 @@ export function DonationProvider({ children }: { children: React.ReactNode }) {
 
 export function useDonation() {
   const context = useContext(DonationContext);
-  if (!context) {
-    throw new Error("useDonation must be used within a DonationProvider");
+  if (context === undefined) {
+    throw new Error('useDonation must be used within a DonationProvider');
   }
   return context;
 }

@@ -9,6 +9,7 @@ export default function DonationStatus() {
   const { user } = useAuth();
   const {
     isLive,
+    isQueuePaused,
     elapsedTime,
     queue,
     currentCode,
@@ -17,16 +18,27 @@ export default function DonationStatus() {
     endDonation,
     generateCode,
     addToQueue,
-    removeFromQueue
+    removeFromQueue,
+    redeemCode,
+    toggleQueuePause
   } = useDonation();
 
   const [nicknameInput, setNicknameInput] = useState("");
+  const [codeInput, setCodeInput] = useState("");
+  const [showCodeInput, setShowCodeInput] = useState(false);
   const isAdmin = user?.role === 'admin';
 
   const handleAddToQueue = async () => {
     if (!nicknameInput.trim()) return;
     await addToQueue(nicknameInput);
     setNicknameInput("");
+  };
+
+  const handleRedeemCode = async () => {
+    if (!codeInput.trim()) return;
+    await redeemCode(codeInput);
+    setCodeInput("");
+    setShowCodeInput(false);
   };
 
   // Função para formatar o timer
@@ -107,6 +119,22 @@ export default function DonationStatus() {
                     Gerar Código
                   </span>
                 </button>
+                {/* Botão de Pausar/Retomar Fila */}
+                {queue.length > 0 && (
+                  <button
+                    onClick={toggleQueuePause}
+                    className={`group relative px-6 py-3 ${
+                      isQueuePaused 
+                        ? 'bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700' 
+                        : 'bg-gradient-to-r from-yellow-500 to-orange-600 hover:from-yellow-600 hover:to-orange-700'
+                    } text-white rounded-xl font-semibold transition-all duration-300 shadow-lg hover:shadow-xl hover:scale-105`}
+                  >
+                    <span className="relative z-10 flex items-center gap-2">
+                      <span className="text-lg">{isQueuePaused ? '▶️' : '⏸️'}</span>
+                      {isQueuePaused ? 'Retomar Fila' : 'Pausar Fila'}
+                    </span>
+                  </button>
+                )}
                 {currentCode && (
                   <div className="px-6 py-3 bg-gradient-to-r from-purple-500/20 to-blue-500/20 backdrop-blur-sm border border-purple-500/30 rounded-xl text-white font-mono text-lg shadow-lg">
                     <div className="text-center">
@@ -140,11 +168,51 @@ export default function DonationStatus() {
           </div>
         )}
 
+        {/* Controles para Usuários */}
+        {user && !isAdmin && isLive && (
+          <div className="flex flex-col items-center gap-4 mb-6">
+            <div className="flex flex-wrap items-center justify-center gap-3">
+              <button
+                onClick={() => setShowCodeInput(!showCodeInput)}
+                className="group relative px-6 py-3 bg-gradient-to-r from-blue-500 to-cyan-600 text-white rounded-xl font-semibold hover:from-blue-600 hover:to-cyan-700 transition-all duration-300 shadow-lg hover:shadow-xl hover:scale-105"
+              >
+                <span className="relative z-10 flex items-center gap-2">
+                  <span className="text-lg">🎁</span>
+                  Resgatar Código
+                </span>
+              </button>
+            </div>
+
+            {/* Input para código */}
+            {showCodeInput && (
+              <div className="flex items-center gap-3 p-4 bg-white/5 backdrop-blur-sm rounded-2xl border border-white/10 shadow-lg">
+                <input
+                  type="text"
+                  value={codeInput}
+                  onChange={(e) => setCodeInput(e.target.value.toUpperCase())}
+                  placeholder="Digite o código"
+                  className="px-4 py-2 bg-white/10 rounded-lg text-white placeholder-gray-400 outline-none focus:ring-2 focus:ring-blue-500 font-mono text-lg text-center w-32"
+                  maxLength={6}
+                />
+                <button
+                  onClick={handleRedeemCode}
+                  disabled={!codeInput.trim()}
+                  className="px-4 py-2 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-lg hover:from-green-600 hover:to-emerald-700 transition-all duration-300 shadow-lg hover:scale-105 disabled:opacity-50"
+                >
+                  <span className="text-lg">✓</span>
+                </button>
+              </div>
+            )}
+          </div>
+        )}
+
         {/* Fila de Usuários */}
         {isLive && queue.length > 0 && (
           <div className="mt-8">
             <div className="text-center mb-4">
-              <h3 className="text-xl font-bold text-white mb-2">👥 Usuários na Fila</h3>
+              <h3 className="text-xl font-bold text-white mb-2">
+                👥 Usuários na Fila {isQueuePaused && <span className="text-yellow-400">(PAUSADA)</span>}
+              </h3>
               <div className="w-16 h-1 bg-gradient-to-r from-blue-500 to-purple-500 mx-auto rounded-full"></div>
             </div>
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
@@ -176,13 +244,23 @@ export default function DonationStatus() {
                     <div className="text-green-400 text-lg font-bold">{user.cambiosEarned}c</div>
                     {/* Timer para próximo câmbio */}
                     <div className="text-xs text-gray-400 font-mono">
-                      Próximo em: {formatTimer(user.nextCambioIn)}
+                      {isQueuePaused ? (
+                        <span className="text-yellow-400">PAUSADO</span>
+                      ) : (
+                        `Próximo em: ${formatTimer(user.nextCambioIn)}`
+                      )}
                     </div>
                     {/* Barra de progresso */}
                     <div className="w-full h-1 bg-gray-700 rounded-full mt-1 overflow-hidden">
                       <div
-                        className="h-full bg-gradient-to-r from-green-500 to-emerald-500 transition-all duration-1000"
-                        style={{ width: `${((180 - user.nextCambioIn) / 180) * 100}%` }}
+                        className={`h-full transition-all duration-1000 ${
+                          isQueuePaused ? 'bg-yellow-500' : 'bg-gradient-to-r from-green-500 to-emerald-500'
+                        }`}
+                        style={{ 
+                          width: isQueuePaused 
+                            ? `${((180 - user.nextCambioIn) / 180) * 100}%` 
+                            : `${((180 - user.nextCambioIn) / 180) * 100}%` 
+                        }}
                       />
                     </div>
                   </div>
@@ -207,7 +285,7 @@ export default function DonationStatus() {
                 </div>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {queueResults.participants.map((participant, index) => (
+                {queueResults.participants.map((participant: any, index: number) => (
                   <div key={participant.nickname} className="group relative bg-gradient-to-br from-white/5 to-white/10 backdrop-blur-sm rounded-xl p-4 border border-white/10 hover:border-white/20 transition-all duration-300 hover:scale-105 shadow-lg hover:shadow-xl">
                     <div className="flex items-center gap-3">
                       <div className="relative">
