@@ -1,25 +1,25 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { PrismaClient } from '@prisma/client';
-import { createToken, setAuthCookie, verifyHabboMotto } from '@/lib/auth';
-
-const prisma = new PrismaClient();
+import prisma from '@/lib/prisma';
+import { verifyHabboMotto, createToken, setAuthCookie } from '@/lib/auth';
 
 export async function POST(request: NextRequest) {
   try {
-    const { nickname, verificationCode } = await request.json();
+    const { nickname, code } = await request.json();
 
-    if (!nickname || !verificationCode) {
+    // Verifica se os campos foram fornecidos
+    if (!nickname || !code) {
       return NextResponse.json(
-        { error: 'Nickname e código de verificação são obrigatórios' },
+        { error: 'Nickname e código são obrigatórios' },
         { status: 400 }
       );
     }
 
-    // Busca o usuário pelo nickname
+    // Busca o usuário
     const user = await prisma.user.findUnique({
-      where: { nickname }
+      where: { nickname },
     });
 
+    // Verifica se o usuário existe
     if (!user) {
       return NextResponse.json(
         { error: 'Usuário não encontrado' },
@@ -27,6 +27,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Verifica se o usuário já está verificado
     if (user.isVerified) {
       return NextResponse.json(
         { error: 'Usuário já está verificado' },
@@ -34,55 +35,59 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (user.verificationCode !== verificationCode) {
+    // Verifica se o código está correto
+    if (user.verificationCode !== code) {
       return NextResponse.json(
         { error: 'Código de verificação inválido' },
         { status: 400 }
       );
     }
 
-    // Verifica se o código está na missão do Habbo
-    const isCodeInMotto = await verifyHabboMotto(nickname, verificationCode);
-    
-    if (!isCodeInMotto) {
+    // Verifica o motto do Habbo
+    const isMottoValid = await verifyHabboMotto(nickname, code);
+    if (!isMottoValid) {
       return NextResponse.json(
-        { error: 'Por favor, coloque o código na sua missão do Habbo antes de verificar' },
+        { error: 'Código não encontrado no motto do Habbo' },
         { status: 400 }
       );
     }
 
-    // Atualiza o usuário como verificado
+    // Atualiza o usuário
     const updatedUser = await prisma.user.update({
       where: { id: user.id },
       data: {
         isVerified: true,
-        verificationCode: null // Remove o código após verificação
-      }
+        verificationCode: null,
+      },
     });
 
     // Gera o token JWT
-    const token = await createToken({
+    const token = createToken({
       id: updatedUser.id,
       nickname: updatedUser.nickname,
-      email: updatedUser.email,
-      level: updatedUser.level,
-      points: updatedUser.points,
-      isVerified: updatedUser.isVerified,
-      role: (updatedUser.role || 'user') as 'admin' | 'user' | 'helper' | 'moderator'
+      role: updatedUser.role,
     });
 
     // Define o cookie de autenticação
-    await setAuthCookie(token);
+    setAuthCookie(token);
 
+    // Retorna os dados do usuário
     return NextResponse.json({
-      message: 'Conta verificada com sucesso'
+      user: {
+        id: updatedUser.id,
+        nickname: updatedUser.nickname,
+        email: updatedUser.email,
+        level: updatedUser.level,
+        points: updatedUser.points,
+        role: updatedUser.role,
+        isVerified: updatedUser.isVerified,
+      },
     });
-
   } catch (error) {
-    console.error('Erro ao verificar conta:', error);
+    console.error('Erro ao verificar usuário:', error);
     return NextResponse.json(
-      { error: 'Erro ao verificar conta' },
+      { error: 'Erro ao verificar usuário' },
       { status: 500 }
     );
   }
-} 
+}
