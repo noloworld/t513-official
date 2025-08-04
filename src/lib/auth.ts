@@ -1,6 +1,6 @@
 import { NextAuthOptions } from 'next-auth';
 import { PrismaAdapter } from '@prisma/client/runtime/library';
-import { prisma } from './prisma';
+import prisma from './prisma';
 import { cookies } from 'next/headers';
 import { NextRequest } from 'next/server';
 import { verify, sign } from 'jsonwebtoken';
@@ -42,15 +42,22 @@ export async function verifyHabboMotto(nickname: string, code: string): Promise<
   }
 }
 
+// Interface para o payload do token
+interface TokenPayload {
+  id: string;
+  nickname: string;
+  role: string;
+}
+
 // Função para criar token JWT
-export function createToken(userId: string): string {
-  return sign({ sub: userId }, JWT_SECRET, { expiresIn: '7d' });
+export function createToken(payload: TokenPayload): string {
+  return sign(payload, JWT_SECRET, { expiresIn: '7d' });
 }
 
 // Função para verificar token JWT
-export function verifyToken(token: string): { sub: string } | null {
+export function verifyToken(token: string): TokenPayload | null {
   try {
-    return verify(token, JWT_SECRET) as { sub: string };
+    return verify(token, JWT_SECRET) as TokenPayload;
   } catch {
     return null;
   }
@@ -82,7 +89,7 @@ export async function getCurrentUser(req: NextRequest) {
     if (!decoded) return null;
 
     const user = await prisma.user.findUnique({
-      where: { id: decoded.sub },
+      where: { id: decoded.id },
       select: {
         id: true,
         nickname: true,
