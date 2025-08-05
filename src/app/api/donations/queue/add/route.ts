@@ -40,9 +40,20 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Buscar doação ativa
+    const activeDonation = await prisma.donation.findFirst({
+      where: { status: 'ACTIVE' }
+    });
+    if (!activeDonation) {
+      return NextResponse.json(
+        { error: 'Nenhuma doação ativa encontrada' },
+        { status: 400 }
+      );
+    }
+
     // Verificar se o usuário já está na fila
     const existingUser = await prisma.queueUser.findFirst({
-      where: { userId: userToAdd.id }
+      where: { userId: userToAdd.id, donationId: activeDonation.id }
     });
     if (existingUser) {
       return NextResponse.json(
@@ -55,6 +66,7 @@ export async function POST(request: NextRequest) {
     const queueUser = await prisma.queueUser.create({
       data: {
         userId: userToAdd.id,
+        donationId: activeDonation.id,
         joinedAt: new Date(),
         cambiosEarned: 0,
         avatarUrl: userToAdd.avatarUrl // se quiser salvar o avatar
