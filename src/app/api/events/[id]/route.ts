@@ -59,7 +59,6 @@ export async function PATCH(
       data: {
         description: description || null,
         date,
-        isRescheduled: true, // Marcar como remarcado
         editedBy: userId,
         editedAt: new Date(),
       },
