@@ -68,8 +68,7 @@ export async function POST(request: NextRequest) {
         userId: userToAdd.id,
         donationId: activeDonation.id,
         joinedAt: new Date(),
-        cambiosEarned: 0,
-        avatarUrl: userToAdd.avatarUrl // se quiser salvar o avatar
+        cambiosEarned: 0
       }
     });
 
